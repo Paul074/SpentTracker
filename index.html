@@ -198,7 +198,7 @@
     if (!db.categories) db.categories = ["🍔 Food", "🚌 Transport", "🛍️ Shopping", "💡 Bills", "💊 Health", "📦 Other"];
     
     let editingId = null;
-    let activeCategoryFilter = 'All';
+    let activeCategoryFilter = 'All Expenses'; // Default is now Expenses only
     let currentChartView = 'day';
     const getCurrentMonthId = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
 
@@ -419,7 +419,7 @@
         monthTx.forEach(t => {
             if (t.type === 'income') {
                 monthIncome += t.amount;
-                if (activeCategoryFilter === 'All') {
+                if (activeCategoryFilter === 'Income') {
                     filteredExpenses.push(t);
                 }
             }
@@ -428,14 +428,18 @@
                 const catKey = t.category || "📦 Uncategorized";
                 usedCategories.add(catKey);
 
-                if (activeCategoryFilter === 'All' || activeCategoryFilter === catKey) {
+                if (activeCategoryFilter === 'All Expenses' || activeCategoryFilter === catKey) {
                     filteredExpenses.push(t);
                 }
             }
         });
 
         let catArray = Array.from(usedCategories).sort();
-        let pillsHTML = `<div class="cat-pill ${activeCategoryFilter === 'All' ? 'active' : ''}" onclick="setFilter('All')">All Activity</div>`;
+        let pillsHTML = `
+            <div class="cat-pill ${activeCategoryFilter === 'All Expenses' ? 'active' : ''}" onclick="setFilter('All Expenses')">All Expenses</div>
+            <div class="cat-pill ${activeCategoryFilter === 'Income' ? 'active' : ''}" onclick="setFilter('Income')">Income</div>
+        `;
+        
         catArray.forEach(cat => {
             const isActive = activeCategoryFilter === cat ? 'active' : '';
             pillsHTML += `<div class="cat-pill ${isActive}" onclick="setFilter('${cat}')">${cat}</div>`;
@@ -444,7 +448,8 @@
 
         let recentHTML = '';
         if (filteredExpenses.length === 0) {
-            recentHTML = `<div class="label" style="text-align:center; margin-top:40px;">No activity found</div>`;
+            let emptyMsg = activeCategoryFilter === 'Income' ? 'No income logged' : `No expenses found`;
+            recentHTML = `<div class="label" style="text-align:center; margin-top:40px;">${emptyMsg}</div>`;
         } else {
             filteredExpenses.forEach(t => {
                 if (t.type === 'income') {
