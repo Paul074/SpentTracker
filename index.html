@@ -129,9 +129,15 @@
         </div>
     </div>
 
-    <div class="card" style="text-align: center; padding: 24px;">
-        <div class="label">This Year</div>
-        <div class="total-number" id="spendYear" style="margin-bottom: 0;">₹0</div>
+    <div class="widget-grid">
+        <div class="widget-card">
+            <div class="label" style="font-size: 11px;">Spent This Year</div>
+            <div class="total-number" id="spendYear" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
+        </div>
+        <div class="widget-card">
+            <div class="label" style="font-size: 11px;">Saved This Year</div>
+            <div class="total-number" id="savedYear" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
+        </div>
     </div>
 
     <div class="card" style="text-align: center; padding: 30px;">
@@ -141,7 +147,7 @@
     </div>
 
     <div class="card" style="text-align: center; padding: 30px;">
-        <div class="label">Total Income Logged</div>
+        <div class="label">Total Income Logged (Month)</div>
         <div class="total-number" id="incomeDisplay" style="margin-bottom: 0;">₹0</div>
     </div>
 
@@ -222,7 +228,6 @@
         calculateStats();
     }
 
-    // Modal Handlers
     function openInputModal() {
         editingId = null;
         document.getElementById('modalTitle').innerText = "New Entry";
@@ -269,7 +274,6 @@
         document.getElementById('title').style.display = type === 'target' ? 'none' : 'block';
     }
 
-    // Category Management
     function populateCategorySelects() {
         const select = document.getElementById('expCategory');
         select.innerHTML = db.categories.map(c => `<option value="${c}">${c}</option>`).join('');
@@ -303,7 +307,6 @@
         renderCategorySettings();
     }
 
-    // Transaction Management
     function saveEntry() {
         const type = document.getElementById('entryType').value;
         const amount = Number(document.getElementById('amount').value);
@@ -394,7 +397,6 @@
         localStorage.setItem('kite_db', JSON.stringify(db));
     }
 
-    // Analytics Engine
     function calculateStats() {
         const currentMonthId = getCurrentMonthId();
         const now = new Date();
@@ -404,10 +406,11 @@
         const weekStartMs = startOfWeek.getTime();
         const currentYear = now.getFullYear();
 
-        let monthIncome = 0, monthSpent = 0, todaySpent = 0, weekSpent = 0, yearSpent = 0;
+        let monthIncome = 0, monthSpent = 0, todaySpent = 0, weekSpent = 0, yearSpent = 0, yearIncome = 0;
         let usedCategories = new Set();
         let filteredExpenses = [];
         const allExp = db.transactions.filter(t => t.type === 'expense');
+        const allInc = db.transactions.filter(t => t.type === 'income');
 
         // Global Analytics
         allExp.forEach(t => {
@@ -415,6 +418,10 @@
             if (new Date(t.timestamp).getFullYear() === currentYear) yearSpent += t.amount;
             if (txTime >= weekStartMs) weekSpent += t.amount;
             if (txTime >= todayStart) todaySpent += t.amount;
+        });
+
+        allInc.forEach(t => {
+            if (new Date(t.timestamp).getFullYear() === currentYear) yearIncome += t.amount;
         });
 
         // Current Month Analytics
@@ -432,7 +439,6 @@
             }
         });
 
-        // Render Horizontal Category Pills
         let catArray = Array.from(usedCategories).sort();
         let pillsHTML = `<div class="cat-pill ${activeCategoryFilter === 'All' ? 'active' : ''}" onclick="setFilter('All')">All Expenses</div>`;
         catArray.forEach(cat => {
@@ -441,7 +447,6 @@
         });
         document.getElementById('categoryFilterContainer').innerHTML = pillsHTML;
 
-        // Render Filtered List
         let recentHTML = '';
         if (filteredExpenses.length === 0) {
             recentHTML = `<div class="label" style="text-align:center; margin-top:40px;">No expenses found for ${activeCategoryFilter}</div>`;
@@ -464,7 +469,6 @@
         }
         document.getElementById('recentExpenses').innerHTML = recentHTML;
 
-        // Update DOM for Alerts
         document.getElementById('displaySpent').innerText = `₹${monthSpent.toLocaleString('en-IN')}`;
         const homeTargetStatus = document.getElementById('homeTargetStatus');
         const targetAmount = db.target || 0;
@@ -477,7 +481,6 @@
             homeTargetStatus.style.display = "none";
         }
 
-        // Render Segmented Dynamic Chart
         let chartData = [];
         let chartLabels = [];
         let maxDaily = 1;
@@ -533,7 +536,14 @@
         // Widgets Update
         document.getElementById('spendToday').innerText = `₹${todaySpent.toLocaleString('en-IN')}`;
         document.getElementById('spendWeek').innerText = `₹${weekSpent.toLocaleString('en-IN')}`;
+        
         document.getElementById('spendYear').innerText = `₹${yearSpent.toLocaleString('en-IN')}`;
+        
+        const yearSaved = yearIncome - yearSpent;
+        const savedYearEl = document.getElementById('savedYear');
+        savedYearEl.innerText = `₹${yearSaved.toLocaleString('en-IN')}`;
+        savedYearEl.style.color = yearSaved >= 0 ? "var(--success)" : "var(--danger)";
+
         document.getElementById('incomeDisplay').innerText = `₹${monthIncome.toLocaleString('en-IN')}`;
         
         const rem = targetAmount - monthSpent;
