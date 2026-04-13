@@ -13,6 +13,7 @@
             --subtext: #8e8e93;
             --accent: #000000;
             --danger: #ff3b30;
+            --danger-light: rgba(255, 59, 48, 0.1);
         }
         body {
             background-color: var(--bg);
@@ -33,6 +34,18 @@
         .label { font-size: 13px; color: var(--subtext); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
         .total-number { font-size: 40px; font-weight: 800; margin: 5px 0 5px 0; letter-spacing: -1px; transition: color 0.3s; }
         
+        .alert-box {
+            background: var(--danger-light);
+            color: var(--danger);
+            padding: 8px 12px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-bottom: 15px;
+            font-size: 13px;
+            font-weight: 700;
+            display: none;
+        }
+
         /* Bar Chart */
         .chart-container { display: flex; justify-content: space-between; align-items: flex-end; height: 120px; border-bottom: 1px solid #e5e5ea; padding-bottom: 10px; margin-bottom: 10px; }
         .bar-wrapper { display: flex; flex-direction: column; align-items: center; width: 12%; }
@@ -66,6 +79,10 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Widget Grid */
+        .widget-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .widget-card { background: var(--card); border-radius: 24px; padding: 20px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
     </style>
 </head>
 <body>
@@ -74,7 +91,8 @@
     <div class="card">
         <div class="label">Total Spending</div>
         <div class="total-number" id="displaySpent">₹0</div>
-        <div id="homeTargetStatus" style="font-size: 13px; font-weight: 600; margin-bottom: 15px; display: none;"></div>
+        
+        <div class="alert-box" id="homeTargetStatus">⚠️ Monthly target crossed</div>
         
         <div class="chart-container" id="chartBars"></div>
     </div>
@@ -87,6 +105,22 @@
     <div style="text-align: center; margin-bottom: 30px;">
         <div class="label">WIDGETS</div>
         <h1 style="font-size: 32px; letter-spacing: -1px; margin-top: 8px;">Spending Trends<br>at a Glance.</h1>
+    </div>
+
+    <div class="widget-grid">
+        <div class="widget-card">
+            <div class="label" style="font-size: 11px;">Today</div>
+            <div class="total-number" id="spendToday" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
+        </div>
+        <div class="widget-card">
+            <div class="label" style="font-size: 11px;">This Week</div>
+            <div class="total-number" id="spendWeek" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
+        </div>
+    </div>
+
+    <div class="card" style="text-align: center; padding: 24px;">
+        <div class="label">This Year</div>
+        <div class="total-number" id="spendYear" style="margin-bottom: 0;">₹0</div>
     </div>
 
     <div class="card" style="text-align: center; padding: 30px;">
@@ -195,18 +229,44 @@
     }
 
     function calculateStats() {
-        const currentMonth = getCurrentMonthId();
-        let totalIncome = 0; let totalSpent = 0;
+        const currentMonthId = getCurrentMonthId();
+        const now = new Date();
+        
+        // Time boundaries for Today, Week, Year logic
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        const startOfWeek = new Date(todayStart);
+        startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday as start of week
+        const weekStartMs = startOfWeek.getTime();
+        const currentYear = now.getFullYear();
+
+        let monthIncome = 0; 
+        let monthSpent = 0;
+        let todaySpent = 0;
+        let weekSpent = 0;
+        let yearSpent = 0;
+        
         let recentHTML = '';
         let dailyTotals = {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}; 
         let maxDaily = 1;
 
-        const monthTx = db.transactions.filter(t => t.month === currentMonth).sort((a,b) => b.id - a.id);
+        // Process ALL expenses for Today, Week, Year analytics
+        const allExpenses = db.transactions.filter(t => t.type === 'expense');
+        allExpenses.forEach(t => {
+            const txDate = new Date(t.timestamp);
+            const txTime = txDate.getTime();
+            
+            if (txDate.getFullYear() === currentYear) yearSpent += t.amount;
+            if (txTime >= weekStartMs) weekSpent += t.amount;
+            if (txTime >= todayStart) todaySpent += t.amount;
+        });
+
+        // Process CURRENT MONTH specifically for Home view and monthly target
+        const monthTx = db.transactions.filter(t => t.month === currentMonthId).sort((a,b) => b.id - a.id);
         
         monthTx.forEach(t => {
-            if (t.type === 'income') totalIncome += t.amount;
+            if (t.type === 'income') monthIncome += t.amount;
             if (t.type === 'expense') {
-                totalSpent += t.amount;
+                monthSpent += t.amount;
                 
                 const dateObj = new Date(t.timestamp);
                 dailyTotals[dateObj.getDay()] += t.amount;
@@ -228,31 +288,28 @@
             }
         });
 
-        // Home Tab Logic
+        // Update Home Tab
         const displaySpentEl = document.getElementById('displaySpent');
         const homeTargetStatus = document.getElementById('homeTargetStatus');
         const targetAmount = db.target || 0;
 
-        displaySpentEl.innerText = `₹${totalSpent.toLocaleString('en-IN')}`;
+        displaySpentEl.innerText = `₹${monthSpent.toLocaleString('en-IN')}`;
         document.getElementById('recentExpenses').innerHTML = recentHTML || '<div class="label" style="text-align:center; margin-top:40px;">No expenses yet</div>';
         
-        if (targetAmount > 0 && totalSpent > targetAmount) {
+        if (targetAmount > 0 && monthSpent > targetAmount) {
             displaySpentEl.style.color = "var(--danger)";
-            homeTargetStatus.style.display = "block";
-            homeTargetStatus.style.color = "var(--danger)";
-            homeTargetStatus.innerText = "⚠️ Monthly target crossed";
+            homeTargetStatus.style.display = "inline-block";
         } else {
             displaySpentEl.style.color = "var(--text)";
             homeTargetStatus.style.display = "none";
         }
 
-        // Chart Logic
+        // Update Chart
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         let chartHTML = '';
         for(let i=0; i<7; i++) {
             const heightPct = (dailyTotals[i] / maxDaily) * 100;
-            // Turn specific day bar red if total spent is over budget
-            const barColor = (targetAmount > 0 && totalSpent > targetAmount) ? "var(--danger)" : "var(--accent)";
+            const barColor = (targetAmount > 0 && monthSpent > targetAmount) ? "var(--danger)" : "var(--accent)";
             chartHTML += `
                 <div class="bar-wrapper">
                     <div class="bar" style="height: ${Math.max(heightPct, 2)}%; background: ${barColor};"></div>
@@ -261,10 +318,13 @@
         }
         document.getElementById('chartBars').innerHTML = chartHTML;
 
-        // Dynamic Summary Logic
-        document.getElementById('incomeDisplay').innerText = `₹${totalIncome.toLocaleString('en-IN')}`;
+        // Update Widget Summary Tab
+        document.getElementById('spendToday').innerText = `₹${todaySpent.toLocaleString('en-IN')}`;
+        document.getElementById('spendWeek').innerText = `₹${weekSpent.toLocaleString('en-IN')}`;
+        document.getElementById('spendYear').innerText = `₹${yearSpent.toLocaleString('en-IN')}`;
+        document.getElementById('incomeDisplay').innerText = `₹${monthIncome.toLocaleString('en-IN')}`;
         
-        const rem = targetAmount - totalSpent;
+        const rem = targetAmount - monthSpent;
         const mainDisplay = document.getElementById('targetDisplay');
         const subDisplay = document.getElementById('targetStatus');
         const cardLabel = document.getElementById('targetCardLabel');
