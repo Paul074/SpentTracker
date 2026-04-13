@@ -15,6 +15,7 @@
             --danger: #ff3b30;
             --danger-light: rgba(255, 59, 48, 0.1);
             --success: #34c759;
+            --success-light: rgba(52, 199, 89, 0.1);
         }
         body {
             background-color: var(--bg);
@@ -48,7 +49,7 @@
         .cat-pill { padding: 10px 18px; background: var(--card); border: 1px solid #e5e5ea; border-radius: 20px; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; color: var(--subtext); transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02);}
         .cat-pill.active { background: var(--accent); color: white; border-color: var(--accent); }
 
-        /* Expense List */
+        /* Expense/Income List */
         .expense-item { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 16px; border-radius: 20px; margin-bottom: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.1s; }
         .expense-item:active { transform: scale(0.98); }
         .expense-left { display: flex; align-items: center; gap: 16px; }
@@ -416,7 +417,12 @@
         // Current Month Analytics
         const monthTx = db.transactions.filter(t => t.month === currentMonthId).sort((a,b) => b.id - a.id);
         monthTx.forEach(t => {
-            if (t.type === 'income') monthIncome += t.amount;
+            if (t.type === 'income') {
+                monthIncome += t.amount;
+                if (activeCategoryFilter === 'All') {
+                    filteredExpenses.push(t);
+                }
+            }
             if (t.type === 'expense') {
                 monthSpent += t.amount;
                 const catKey = t.category || "📦 Uncategorized";
@@ -429,7 +435,7 @@
         });
 
         let catArray = Array.from(usedCategories).sort();
-        let pillsHTML = `<div class="cat-pill ${activeCategoryFilter === 'All' ? 'active' : ''}" onclick="setFilter('All')">All Expenses</div>`;
+        let pillsHTML = `<div class="cat-pill ${activeCategoryFilter === 'All' ? 'active' : ''}" onclick="setFilter('All')">All Activity</div>`;
         catArray.forEach(cat => {
             const isActive = activeCategoryFilter === cat ? 'active' : '';
             pillsHTML += `<div class="cat-pill ${isActive}" onclick="setFilter('${cat}')">${cat}</div>`;
@@ -438,22 +444,37 @@
 
         let recentHTML = '';
         if (filteredExpenses.length === 0) {
-            recentHTML = `<div class="label" style="text-align:center; margin-top:40px;">No expenses found for ${activeCategoryFilter}</div>`;
+            recentHTML = `<div class="label" style="text-align:center; margin-top:40px;">No activity found</div>`;
         } else {
             filteredExpenses.forEach(t => {
-                const icon = (t.category ? t.category.split(' ')[0] : '🏷️');
-                const dateStr = new Date(t.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-                recentHTML += `
-                    <div class="expense-item" onclick="editTransaction(${t.id})">
-                        <div class="expense-left">
-                            <div class="icon-box">${icon}</div>
-                            <div>
-                                <div class="title">${t.title}</div>
-                                <div class="date">${dateStr}</div>
+                if (t.type === 'income') {
+                    const dateStr = new Date(t.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                    recentHTML += `
+                        <div class="expense-item" onclick="editTransaction(${t.id})">
+                            <div class="expense-left">
+                                <div class="icon-box" style="color: var(--success); background: var(--success-light);">💵</div>
+                                <div>
+                                    <div class="title">${t.title}</div>
+                                    <div class="date">${dateStr}</div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="amount">₹${t.amount.toLocaleString('en-IN')}</div>
-                    </div>`;
+                            <div class="amount" style="color: var(--success);">+₹${t.amount.toLocaleString('en-IN')}</div>
+                        </div>`;
+                } else {
+                    const icon = (t.category ? t.category.split(' ')[0] : '🏷️');
+                    const dateStr = new Date(t.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                    recentHTML += `
+                        <div class="expense-item" onclick="editTransaction(${t.id})">
+                            <div class="expense-left">
+                                <div class="icon-box">${icon}</div>
+                                <div>
+                                    <div class="title">${t.title}</div>
+                                    <div class="date">${dateStr}</div>
+                                </div>
+                            </div>
+                            <div class="amount">₹${t.amount.toLocaleString('en-IN')}</div>
+                        </div>`;
+                }
             });
         }
         document.getElementById('recentExpenses').innerHTML = recentHTML;
