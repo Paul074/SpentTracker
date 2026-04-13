@@ -14,6 +14,7 @@
             --accent: #000000;
             --danger: #ff3b30;
             --danger-light: rgba(255, 59, 48, 0.1);
+            --success: #34c759;
         }
         body {
             background-color: var(--bg);
@@ -24,14 +25,7 @@
             padding-bottom: 100px;
         }
         .container { padding: 20px; }
-        .card {
-            background: var(--card);
-            border-radius: 24px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-            position: relative;
-        }
+        .card { background: var(--card); border-radius: 24px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); position: relative; }
         .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .label { font-size: 13px; color: var(--subtext); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
         .total-number { font-size: 40px; font-weight: 800; margin: 5px 0 5px 0; letter-spacing: -1px; transition: color 0.3s; }
@@ -45,8 +39,13 @@
         .bar { width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; transition: height 0.3s ease; }
         .day-label { font-size: 10px; color: var(--subtext); margin-top: 8px; font-weight: 600; }
 
-        /* Categorized Expense List */
-        .category-header { font-size: 14px; font-weight: 700; color: var(--subtext); margin: 24px 0 10px 10px; display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: 0.5px;}
+        /* Horizontal Category Pills */
+        .category-scroll { display: flex; overflow-x: auto; gap: 10px; margin: 20px 0 15px 0; padding-bottom: 5px; scrollbar-width: none; -ms-overflow-style: none; }
+        .category-scroll::-webkit-scrollbar { display: none; }
+        .cat-pill { padding: 10px 18px; background: var(--card); border: 1px solid #e5e5ea; border-radius: 20px; font-size: 13px; font-weight: 700; white-space: nowrap; cursor: pointer; color: var(--subtext); transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02);}
+        .cat-pill.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        /* Expense List */
         .expense-item { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 16px; border-radius: 20px; margin-bottom: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.1s; }
         .expense-item:active { transform: scale(0.98); }
         .expense-left { display: flex; align-items: center; gap: 16px; }
@@ -97,6 +96,8 @@
         <div class="chart-container" id="chartBars"></div>
     </div>
 
+    <div class="category-scroll" id="categoryFilterContainer"></div>
+
     <div id="recentExpenses"></div>
 </div>
 
@@ -133,7 +134,7 @@
         <div class="total-number" id="incomeDisplay" style="margin-bottom: 0;">₹0</div>
     </div>
 
-    <button class="btn-secondary" onclick="exportCSV()">Export Data (Excel/CSV)</button>
+    <button class="btn-secondary" onclick="exportExcel()">Export Report (.xls)</button>
 </div>
 
 <button class="fab" onclick="openInputModal()">+</button>
@@ -184,6 +185,7 @@
     if (!db.categories) db.categories = ["🍔 Food", "🚌 Transport", "🛍️ Shopping", "💡 Bills", "💊 Health", "📦 Other"];
     
     let editingId = null;
+    let activeCategoryFilter = 'All'; // State for horizontal filtering
     const getCurrentMonthId = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
 
     function init() {
@@ -196,6 +198,11 @@
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         el.classList.add('active');
+    }
+
+    function setFilter(catName) {
+        activeCategoryFilter = catName;
+        calculateStats(); // Re-render list
     }
 
     // Modal Handlers
@@ -217,7 +224,7 @@
 
         document.getElementById('modalTitle').innerText = "Edit Entry";
         document.getElementById('entryType').value = tx.type;
-        document.getElementById('entryType').disabled = true; // Prevent changing type during edit
+        document.getElementById('entryType').disabled = true;
         toggleFields();
         
         document.getElementById('amount').value = tx.amount;
@@ -322,16 +329,48 @@
         calculateStats();
     }
 
-    function exportCSV() {
-        let csv = "Type,Date,Amount,Title,Category\n";
+    // Professional HTML Table Export encoded as XLS
+    function exportExcel() {
+        let tableHTML = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+            <head><meta charset="UTF-8"></head>
+            <body>
+                <table border="1" style="border-collapse: collapse; font-family: -apple-system, sans-serif; width: 100%;">
+                    <thead>
+                        <tr style="background-color: #f2f2f6; text-align: left;">
+                            <th style="padding: 12px; border: 1px solid #d1d1d6;">Date</th>
+                            <th style="padding: 12px; border: 1px solid #d1d1d6;">Type</th>
+                            <th style="padding: 12px; border: 1px solid #d1d1d6;">Category</th>
+                            <th style="padding: 12px; border: 1px solid #d1d1d6;">Title / Note</th>
+                            <th style="padding: 12px; border: 1px solid #d1d1d6;">Amount (INR)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
         db.transactions.forEach(t => {
             const date = new Date(t.timestamp).toLocaleDateString('en-GB');
-            csv += `${t.type},${date},${t.amount},${t.title},${t.category || ''}\n`;
+            const cat = t.category || '-';
+            const color = t.type === 'income' ? '#34c759' : '#ff3b30'; // Green or Red
+            const sign = t.type === 'income' ? '+' : '-';
+            
+            tableHTML += `
+                <tr>
+                    <td style="padding: 10px; border: 1px solid #d1d1d6;">${date}</td>
+                    <td style="padding: 10px; border: 1px solid #d1d1d6; text-transform: capitalize;">${t.type}</td>
+                    <td style="padding: 10px; border: 1px solid #d1d1d6;">${cat}</td>
+                    <td style="padding: 10px; border: 1px solid #d1d1d6;">${t.title}</td>
+                    <td style="padding: 10px; border: 1px solid #d1d1d6; color: ${color}; font-weight: bold;">${sign}${t.amount}</td>
+                </tr>
+            `;
         });
-        const blob = new Blob([csv], { type: "text/csv" });
+
+        tableHTML += `</tbody></table></body></html>`;
+
+        const blob = new Blob([tableHTML], { type: "application/vnd.ms-excel" });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `KiteExport_${getCurrentMonthId()}.csv`;
+        a.download = `KiteReport_${getCurrentMonthId()}.xls`;
         a.click();
     }
 
@@ -352,11 +391,9 @@
         let monthIncome = 0, monthSpent = 0, todaySpent = 0, weekSpent = 0, yearSpent = 0;
         let dailyTotals = {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}; 
         let maxDaily = 1;
-        
-        // Category Grouping Object
-        let catGroups = {};
+        let usedCategories = new Set();
+        let filteredExpenses = [];
 
-        // Global Analytics
         db.transactions.filter(t => t.type === 'expense').forEach(t => {
             const txTime = new Date(t.timestamp).getTime();
             if (new Date(t.timestamp).getFullYear() === currentYear) yearSpent += t.amount;
@@ -364,7 +401,6 @@
             if (txTime >= todayStart) todaySpent += t.amount;
         });
 
-        // Current Month Analytics & Grouping
         const monthTx = db.transactions.filter(t => t.month === currentMonthId).sort((a,b) => b.id - a.id);
         
         monthTx.forEach(t => {
@@ -375,44 +411,49 @@
                 dailyTotals[dateObj.getDay()] += t.amount;
                 if(dailyTotals[dateObj.getDay()] > maxDaily) maxDaily = dailyTotals[dateObj.getDay()];
 
-                // Group by category string
                 const catKey = t.category || "📦 Uncategorized";
-                if(!catGroups[catKey]) catGroups[catKey] = { total: 0, items: [] };
-                catGroups[catKey].total += t.amount;
-                catGroups[catKey].items.push(t);
+                usedCategories.add(catKey);
+
+                if (activeCategoryFilter === 'All' || activeCategoryFilter === catKey) {
+                    filteredExpenses.push(t);
+                }
             }
         });
 
-        // Render Grouped HTML
+        // Render Horizontal Category Pills
+        let catArray = Array.from(usedCategories).sort();
+        let pillsHTML = `<div class="cat-pill ${activeCategoryFilter === 'All' ? 'active' : ''}" onclick="setFilter('All')">All Expenses</div>`;
+        catArray.forEach(cat => {
+            const isActive = activeCategoryFilter === cat ? 'active' : '';
+            pillsHTML += `<div class="cat-pill ${isActive}" onclick="setFilter('${cat}')">${cat}</div>`;
+        });
+        document.getElementById('categoryFilterContainer').innerHTML = pillsHTML;
+
+        // Render Filtered List
         let recentHTML = '';
-        if (Object.keys(catGroups).length === 0) {
-            recentHTML = '<div class="label" style="text-align:center; margin-top:40px;">No expenses yet</div>';
+        if (filteredExpenses.length === 0) {
+            recentHTML = `<div class="label" style="text-align:center; margin-top:40px;">No expenses found for ${activeCategoryFilter}</div>`;
         } else {
-            for (const [catName, data] of Object.entries(catGroups)) {
-                recentHTML += `<div class="category-header"><span>${catName}</span><span>₹${data.total.toLocaleString('en-IN')}</span></div>`;
-                
-                data.items.forEach(t => {
-                    const icon = catName.split(' ')[0] || '🏷️';
-                    const dateStr = new Date(t.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-                    recentHTML += `
-                        <div class="expense-item" onclick="editTransaction(${t.id})">
-                            <div class="expense-left">
-                                <div class="icon-box">${icon}</div>
-                                <div>
-                                    <div class="title">${t.title}</div>
-                                    <div class="date">${dateStr}</div>
-                                </div>
+            filteredExpenses.forEach(t => {
+                const icon = (t.category ? t.category.split(' ')[0] : '🏷️');
+                const dateStr = new Date(t.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                recentHTML += `
+                    <div class="expense-item" onclick="editTransaction(${t.id})">
+                        <div class="expense-left">
+                            <div class="icon-box">${icon}</div>
+                            <div>
+                                <div class="title">${t.title}</div>
+                                <div class="date">${dateStr}</div>
                             </div>
-                            <div class="amount">₹${t.amount.toLocaleString('en-IN')}</div>
-                        </div>`;
-                });
-            }
+                        </div>
+                        <div class="amount">₹${t.amount.toLocaleString('en-IN')}</div>
+                    </div>`;
+            });
         }
+        document.getElementById('recentExpenses').innerHTML = recentHTML;
 
         // Update DOM
-        document.getElementById('recentExpenses').innerHTML = recentHTML;
         document.getElementById('displaySpent').innerText = `₹${monthSpent.toLocaleString('en-IN')}`;
-        
         const homeTargetStatus = document.getElementById('homeTargetStatus');
         const targetAmount = db.target || 0;
         
