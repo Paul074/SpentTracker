@@ -131,12 +131,12 @@
 
     <div class="widget-grid">
         <div class="widget-card">
-            <div class="label" style="font-size: 11px;">Spent This Year</div>
-            <div class="total-number" id="spendYear" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
+            <div class="label" style="font-size: 11px;">Month Income</div>
+            <div class="total-number" id="incomeMonthWidget" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
         <div class="widget-card">
-            <div class="label" style="font-size: 11px;">Saved This Year</div>
-            <div class="total-number" id="savedYear" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
+            <div class="label" style="font-size: 11px;">Saved This Month</div>
+            <div class="total-number" id="savedMonth" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
     </div>
 
@@ -144,11 +144,6 @@
         <div class="label" id="targetCardLabel">Remaining Budget</div>
         <div class="total-number" id="targetDisplay" style="margin-bottom: 5px;">₹0</div>
         <div style="font-size: 14px; color: var(--subtext); font-weight: 500;" id="targetStatus"></div>
-    </div>
-
-    <div class="card" style="text-align: center; padding: 30px;">
-        <div class="label">Total Income Logged (Month)</div>
-        <div class="total-number" id="incomeDisplay" style="margin-bottom: 0;">₹0</div>
     </div>
 
     <button class="btn-secondary" onclick="exportExcel()">Export Report (.xls)</button>
@@ -406,22 +401,16 @@
         const weekStartMs = startOfWeek.getTime();
         const currentYear = now.getFullYear();
 
-        let monthIncome = 0, monthSpent = 0, todaySpent = 0, weekSpent = 0, yearSpent = 0, yearIncome = 0;
+        let monthIncome = 0, monthSpent = 0, todaySpent = 0, weekSpent = 0;
         let usedCategories = new Set();
         let filteredExpenses = [];
         const allExp = db.transactions.filter(t => t.type === 'expense');
-        const allInc = db.transactions.filter(t => t.type === 'income');
 
         // Global Analytics
         allExp.forEach(t => {
             const txTime = new Date(t.timestamp).getTime();
-            if (new Date(t.timestamp).getFullYear() === currentYear) yearSpent += t.amount;
             if (txTime >= weekStartMs) weekSpent += t.amount;
             if (txTime >= todayStart) todaySpent += t.amount;
-        });
-
-        allInc.forEach(t => {
-            if (new Date(t.timestamp).getFullYear() === currentYear) yearIncome += t.amount;
         });
 
         // Current Month Analytics
@@ -537,15 +526,13 @@
         document.getElementById('spendToday').innerText = `₹${todaySpent.toLocaleString('en-IN')}`;
         document.getElementById('spendWeek').innerText = `₹${weekSpent.toLocaleString('en-IN')}`;
         
-        document.getElementById('spendYear').innerText = `₹${yearSpent.toLocaleString('en-IN')}`;
+        document.getElementById('incomeMonthWidget').innerText = `₹${monthIncome.toLocaleString('en-IN')}`;
         
-        const yearSaved = yearIncome - yearSpent;
-        const savedYearEl = document.getElementById('savedYear');
-        savedYearEl.innerText = `₹${yearSaved.toLocaleString('en-IN')}`;
-        savedYearEl.style.color = yearSaved >= 0 ? "var(--success)" : "var(--danger)";
+        const monthSaved = monthIncome - monthSpent;
+        const savedMonthEl = document.getElementById('savedMonth');
+        savedMonthEl.innerText = `₹${monthSaved.toLocaleString('en-IN')}`;
+        savedMonthEl.style.color = monthSaved >= 0 ? "var(--success)" : "var(--danger)";
 
-        document.getElementById('incomeDisplay').innerText = `₹${monthIncome.toLocaleString('en-IN')}`;
-        
         const rem = targetAmount - monthSpent;
         const mainDisplay = document.getElementById('targetDisplay');
         const subDisplay = document.getElementById('targetStatus');
