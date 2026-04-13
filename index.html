@@ -31,7 +31,7 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.04);
         }
         .label { font-size: 13px; color: var(--subtext); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        .total-number { font-size: 40px; font-weight: 800; margin: 5px 0 20px 0; letter-spacing: -1px; }
+        .total-number { font-size: 40px; font-weight: 800; margin: 5px 0 20px 0; letter-spacing: -1px; transition: color 0.3s; }
         
         /* Bar Chart */
         .chart-container { display: flex; justify-content: space-between; align-items: flex-end; height: 120px; border-bottom: 1px solid #e5e5ea; padding-bottom: 10px; margin-bottom: 10px; }
@@ -75,8 +75,7 @@
         <div class="label">Total Spending</div>
         <div class="total-number" id="displaySpent">₹0</div>
         
-        <div class="chart-container" id="chartBars">
-            </div>
+        <div class="chart-container" id="chartBars"></div>
     </div>
 
     <div class="label" style="margin: 24px 0 12px 10px;">Latest</div>
@@ -90,14 +89,14 @@
     </div>
 
     <div class="card" style="text-align: center; padding: 30px;">
-        <div class="label">This Month Target</div>
-        <div class="total-number" id="targetDisplay">₹0</div>
-        <div style="font-size: 14px; color: var(--subtext);" id="targetStatus"></div>
+        <div class="label" id="targetCardLabel">Remaining Budget</div>
+        <div class="total-number" id="targetDisplay" style="margin-bottom: 5px;">₹0</div>
+        <div style="font-size: 14px; color: var(--subtext); font-weight: 500;" id="targetStatus"></div>
     </div>
 
     <div class="card" style="text-align: center; padding: 30px;">
         <div class="label">Total Income Logged</div>
-        <div class="total-number" id="incomeDisplay">₹0</div>
+        <div class="total-number" id="incomeDisplay" style="margin-bottom: 0;">₹0</div>
     </div>
 </div>
 
@@ -198,10 +197,9 @@
         const currentMonth = getCurrentMonthId();
         let totalIncome = 0; let totalSpent = 0;
         let recentHTML = '';
-        let dailyTotals = {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}; // Sun-Sat
+        let dailyTotals = {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}; 
         let maxDaily = 1;
 
-        // Sort latest first
         const monthTx = db.transactions.filter(t => t.month === currentMonth).sort((a,b) => b.id - a.id);
         
         monthTx.forEach(t => {
@@ -209,12 +207,10 @@
             if (t.type === 'expense') {
                 totalSpent += t.amount;
                 
-                // Chart logic
                 const dateObj = new Date(t.timestamp);
                 dailyTotals[dateObj.getDay()] += t.amount;
                 if(dailyTotals[dateObj.getDay()] > maxDaily) maxDaily = dailyTotals[dateObj.getDay()];
 
-                // UI List
                 const icon = t.category ? t.category.split(' ')[0] : '🏷️';
                 const dateStr = dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
                 recentHTML += `
@@ -234,7 +230,6 @@
         document.getElementById('displaySpent').innerText = `₹${totalSpent.toLocaleString('en-IN')}`;
         document.getElementById('recentExpenses').innerHTML = recentHTML || '<div class="label" style="text-align:center; margin-top:40px;">No expenses yet</div>';
         
-        // Render Chart
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         let chartHTML = '';
         for(let i=0; i<7; i++) {
@@ -247,16 +242,29 @@
         }
         document.getElementById('chartBars').innerHTML = chartHTML;
 
-        // Summary Tab
-        document.getElementById('targetDisplay').innerText = `₹${(db.target || 0).toLocaleString('en-IN')}`;
+        // Dynamic Summary Logic
         document.getElementById('incomeDisplay').innerText = `₹${totalIncome.toLocaleString('en-IN')}`;
         
-        const rem = (db.target || 0) - totalSpent;
-        const statusEl = document.getElementById('targetStatus');
+        const targetAmount = db.target || 0;
+        const rem = targetAmount - totalSpent;
+        const mainDisplay = document.getElementById('targetDisplay');
+        const subDisplay = document.getElementById('targetStatus');
+        const cardLabel = document.getElementById('targetCardLabel');
+        
         if (rem < 0) {
-            statusEl.innerHTML = `<span style="color:var(--danger); font-weight:700;">Over budget by ₹${Math.abs(rem).toLocaleString('en-IN')}</span>`;
+            // Over budget state
+            cardLabel.innerText = "OVERSPENT BY";
+            cardLabel.style.color = "var(--danger)";
+            mainDisplay.innerText = `₹${Math.abs(rem).toLocaleString('en-IN')}`;
+            mainDisplay.style.color = "var(--danger)";
+            subDisplay.innerText = `Monthly target was ₹${targetAmount.toLocaleString('en-IN')}`;
         } else {
-            statusEl.innerText = `₹${rem.toLocaleString('en-IN')} remaining`;
+            // Under budget state
+            cardLabel.innerText = "REMAINING BUDGET";
+            cardLabel.style.color = "var(--subtext)";
+            mainDisplay.innerText = `₹${rem.toLocaleString('en-IN')}`;
+            mainDisplay.style.color = "var(--text)";
+            subDisplay.innerText = `Monthly target is ₹${targetAmount.toLocaleString('en-IN')}`;
         }
     }
 
