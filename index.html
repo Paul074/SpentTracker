@@ -33,11 +33,14 @@
         .alert-box { background: var(--danger-light); color: var(--danger); padding: 8px 12px; border-radius: 8px; display: inline-block; margin-bottom: 15px; font-size: 13px; font-weight: 700; display: none; }
         .icon-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--subtext); padding: 0; }
 
-        /* Chart */
+        /* Chart & Toggles */
+        .chart-toggles { display: flex; background: var(--bg); border-radius: 8px; padding: 4px; margin-bottom: 15px; }
+        .chart-toggle { flex: 1; text-align: center; font-size: 12px; font-weight: 700; padding: 6px 0; color: var(--subtext); border-radius: 6px; cursor: pointer; transition: all 0.2s; }
+        .chart-toggle.active { background: var(--card); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .chart-container { display: flex; justify-content: space-between; align-items: flex-end; height: 120px; border-bottom: 1px solid #e5e5ea; padding-bottom: 10px; margin-bottom: 10px; }
-        .bar-wrapper { display: flex; flex-direction: column; align-items: center; width: 12%; height: 100%; justify-content: flex-end; }
-        .bar { width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; transition: height 0.3s ease; }
-        .day-label { font-size: 10px; color: var(--subtext); margin-top: 8px; font-weight: 600; }
+        .bar-wrapper { display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+        .bar { width: 80%; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; transition: height 0.3s ease; }
+        .day-label { color: var(--subtext); margin-top: 8px; font-weight: 600; text-align: center; }
 
         /* Horizontal Category Pills */
         .category-scroll { display: flex; overflow-x: auto; gap: 10px; margin: 20px 0 15px 0; padding-bottom: 5px; scrollbar-width: none; -ms-overflow-style: none; }
@@ -93,6 +96,14 @@
         <div class="label">Total Spending</div>
         <div class="total-number" id="displaySpent">₹0</div>
         <div class="alert-box" id="homeTargetStatus">⚠️ Monthly target crossed</div>
+        
+        <div class="chart-toggles">
+            <div class="chart-toggle active" id="toggle-day" onclick="setChartView('day')">Day</div>
+            <div class="chart-toggle" id="toggle-week" onclick="setChartView('week')">Week</div>
+            <div class="chart-toggle" id="toggle-month" onclick="setChartView('month')">Month</div>
+            <div class="chart-toggle" id="toggle-year" onclick="setChartView('year')">Year</div>
+        </div>
+
         <div class="chart-container" id="chartBars"></div>
     </div>
 
@@ -185,7 +196,8 @@
     if (!db.categories) db.categories = ["🍔 Food", "🚌 Transport", "🛍️ Shopping", "💡 Bills", "💊 Health", "📦 Other"];
     
     let editingId = null;
-    let activeCategoryFilter = 'All'; // State for horizontal filtering
+    let activeCategoryFilter = 'All';
+    let currentChartView = 'day';
     const getCurrentMonthId = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
 
     function init() {
@@ -202,7 +214,12 @@
 
     function setFilter(catName) {
         activeCategoryFilter = catName;
-        calculateStats(); // Re-render list
+        calculateStats();
+    }
+
+    function setChartView(view) {
+        currentChartView = view;
+        calculateStats();
     }
 
     // Modal Handlers
@@ -329,7 +346,6 @@
         calculateStats();
     }
 
-    // Professional HTML Table Export encoded as XLS
     function exportExcel() {
         let tableHTML = `
             <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -351,7 +367,7 @@
         db.transactions.forEach(t => {
             const date = new Date(t.timestamp).toLocaleDateString('en-GB');
             const cat = t.category || '-';
-            const color = t.type === 'income' ? '#34c759' : '#ff3b30'; // Green or Red
+            const color = t.type === 'income' ? '#34c759' : '#ff3b30';
             const sign = t.type === 'income' ? '+' : '-';
             
             tableHTML += `
@@ -389,28 +405,24 @@
         const currentYear = now.getFullYear();
 
         let monthIncome = 0, monthSpent = 0, todaySpent = 0, weekSpent = 0, yearSpent = 0;
-        let dailyTotals = {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}; 
-        let maxDaily = 1;
         let usedCategories = new Set();
         let filteredExpenses = [];
+        const allExp = db.transactions.filter(t => t.type === 'expense');
 
-        db.transactions.filter(t => t.type === 'expense').forEach(t => {
+        // Global Analytics
+        allExp.forEach(t => {
             const txTime = new Date(t.timestamp).getTime();
             if (new Date(t.timestamp).getFullYear() === currentYear) yearSpent += t.amount;
             if (txTime >= weekStartMs) weekSpent += t.amount;
             if (txTime >= todayStart) todaySpent += t.amount;
         });
 
+        // Current Month Analytics
         const monthTx = db.transactions.filter(t => t.month === currentMonthId).sort((a,b) => b.id - a.id);
-        
         monthTx.forEach(t => {
             if (t.type === 'income') monthIncome += t.amount;
             if (t.type === 'expense') {
                 monthSpent += t.amount;
-                const dateObj = new Date(t.timestamp);
-                dailyTotals[dateObj.getDay()] += t.amount;
-                if(dailyTotals[dateObj.getDay()] > maxDaily) maxDaily = dailyTotals[dateObj.getDay()];
-
                 const catKey = t.category || "📦 Uncategorized";
                 usedCategories.add(catKey);
 
@@ -452,7 +464,7 @@
         }
         document.getElementById('recentExpenses').innerHTML = recentHTML;
 
-        // Update DOM
+        // Update DOM for Alerts
         document.getElementById('displaySpent').innerText = `₹${monthSpent.toLocaleString('en-IN')}`;
         const homeTargetStatus = document.getElementById('homeTargetStatus');
         const targetAmount = db.target || 0;
@@ -465,16 +477,60 @@
             homeTargetStatus.style.display = "none";
         }
 
+        // Render Segmented Dynamic Chart
+        let chartData = [];
+        let chartLabels = [];
+        let maxDaily = 1;
+
+        if (currentChartView === 'day') {
+            chartLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            chartData = [0,0,0,0,0,0,0];
+            const endOfWeek = weekStartMs + 7*24*60*60*1000;
+            allExp.forEach(t => {
+                const txTime = new Date(t.timestamp).getTime();
+                if(txTime >= weekStartMs && txTime < endOfWeek) chartData[new Date(t.timestamp).getDay()] += t.amount;
+            });
+        } else if (currentChartView === 'week') {
+            chartLabels = ['W1', 'W2', 'W3', 'W4', 'W5'];
+            chartData = [0,0,0,0,0];
+            allExp.forEach(t => {
+                const d = new Date(t.timestamp);
+                if(d.getFullYear() === currentYear && d.getMonth() === now.getMonth()) {
+                    const w = Math.min(Math.floor((d.getDate() - 1) / 7), 4);
+                    chartData[w] += t.amount;
+                }
+            });
+        } else if (currentChartView === 'month') {
+            chartLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            chartData = new Array(12).fill(0);
+            allExp.forEach(t => {
+                const d = new Date(t.timestamp);
+                if(d.getFullYear() === currentYear) chartData[d.getMonth()] += t.amount;
+            });
+        } else if (currentChartView === 'year') {
+            chartLabels = [currentYear - 2, currentYear - 1, currentYear];
+            chartData = [0,0,0];
+            allExp.forEach(t => {
+                const y = new Date(t.timestamp).getFullYear();
+                if (y === currentYear - 2) chartData[0] += t.amount;
+                else if (y === currentYear - 1) chartData[1] += t.amount;
+                else if (y === currentYear) chartData[2] += t.amount;
+            });
+        }
+
+        maxDaily = Math.max(...chartData, 1);
         let chartHTML = '';
-        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        for(let i=0; i<7; i++) {
-            const heightPct = (dailyTotals[i] / maxDaily) * 100;
-            const barColor = (targetAmount > 0 && monthSpent > targetAmount) ? "var(--danger)" : "var(--accent)";
-            chartHTML += `<div class="bar-wrapper"><div class="bar" style="height: ${Math.max(heightPct, 2)}%; background: ${barColor};"></div><div class="day-label">${days[i]}</div></div>`;
+        const barColor = (targetAmount > 0 && monthSpent > targetAmount) ? "var(--danger)" : "var(--accent)";
+        for(let i=0; i<chartLabels.length; i++) {
+            const heightPct = (chartData[i] / maxDaily) * 100;
+            chartHTML += `<div class="bar-wrapper" style="width: ${100/chartLabels.length}%"><div class="bar" style="height: ${Math.max(heightPct, 2)}%; background: ${barColor};"></div><div class="day-label" style="font-size:9px;">${chartLabels[i]}</div></div>`;
         }
         document.getElementById('chartBars').innerHTML = chartHTML;
+        
+        document.querySelectorAll('.chart-toggle').forEach(el => el.classList.remove('active'));
+        document.getElementById('toggle-' + currentChartView).classList.add('active');
 
-        // Widgets
+        // Widgets Update
         document.getElementById('spendToday').innerText = `₹${todaySpent.toLocaleString('en-IN')}`;
         document.getElementById('spendWeek').innerText = `₹${weekSpent.toLocaleString('en-IN')}`;
         document.getElementById('spendYear').innerText = `₹${yearSpent.toLocaleString('en-IN')}`;
