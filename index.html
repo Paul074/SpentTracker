@@ -46,10 +46,10 @@
             display: none;
         }
 
-        /* Bar Chart */
+        /* Fixed Bar Chart CSS */
         .chart-container { display: flex; justify-content: space-between; align-items: flex-end; height: 120px; border-bottom: 1px solid #e5e5ea; padding-bottom: 10px; margin-bottom: 10px; }
-        .bar-wrapper { display: flex; flex-direction: column; align-items: center; width: 12%; }
-        .bar { width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; }
+        .bar-wrapper { display: flex; flex-direction: column; align-items: center; width: 12%; height: 100%; justify-content: flex-end; }
+        .bar { width: 100%; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; transition: height 0.3s ease; }
         .day-label { font-size: 10px; color: var(--subtext); margin-top: 8px; font-weight: 600; }
 
         /* Expense List */
@@ -83,6 +83,9 @@
         /* Widget Grid */
         .widget-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
         .widget-card { background: var(--card); border-radius: 24px; padding: 20px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+        
+        /* Secondary Button */
+        .btn-secondary { background: #e5e5ea; color: var(--text); width: 100%; padding: 18px; border-radius: 16px; font-size: 16px; font-weight: 700; border: none; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
@@ -133,6 +136,8 @@
         <div class="label">Total Income Logged</div>
         <div class="total-number" id="incomeDisplay" style="margin-bottom: 0;">₹0</div>
     </div>
+
+    <button class="btn-secondary" onclick="exportCSV()">Export Data (Excel/CSV)</button>
 </div>
 
 <button class="fab" onclick="openModal()">+</button>
@@ -228,14 +233,26 @@
         calculateStats();
     }
 
+    function exportCSV() {
+        let csv = "Type,Date,Amount,Title,Category\n";
+        db.transactions.forEach(t => {
+            const date = new Date(t.timestamp).toLocaleDateString('en-GB');
+            csv += `${t.type},${date},${t.amount},${t.title},${t.category || ''}\n`;
+        });
+        const blob = new Blob([csv], { type: "text/csv" });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `KiteExport_${getCurrentMonthId()}.csv`;
+        a.click();
+    }
+
     function calculateStats() {
         const currentMonthId = getCurrentMonthId();
         const now = new Date();
         
-        // Time boundaries for Today, Week, Year logic
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
         const startOfWeek = new Date(todayStart);
-        startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday as start of week
+        startOfWeek.setDate(now.getDate() - now.getDay()); 
         const weekStartMs = startOfWeek.getTime();
         const currentYear = now.getFullYear();
 
@@ -249,7 +266,6 @@
         let dailyTotals = {0:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0}; 
         let maxDaily = 1;
 
-        // Process ALL expenses for Today, Week, Year analytics
         const allExpenses = db.transactions.filter(t => t.type === 'expense');
         allExpenses.forEach(t => {
             const txDate = new Date(t.timestamp);
@@ -260,7 +276,6 @@
             if (txTime >= todayStart) todaySpent += t.amount;
         });
 
-        // Process CURRENT MONTH specifically for Home view and monthly target
         const monthTx = db.transactions.filter(t => t.month === currentMonthId).sort((a,b) => b.id - a.id);
         
         monthTx.forEach(t => {
@@ -288,7 +303,6 @@
             }
         });
 
-        // Update Home Tab
         const displaySpentEl = document.getElementById('displaySpent');
         const homeTargetStatus = document.getElementById('homeTargetStatus');
         const targetAmount = db.target || 0;
@@ -304,7 +318,6 @@
             homeTargetStatus.style.display = "none";
         }
 
-        // Update Chart
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         let chartHTML = '';
         for(let i=0; i<7; i++) {
@@ -318,7 +331,6 @@
         }
         document.getElementById('chartBars').innerHTML = chartHTML;
 
-        // Update Widget Summary Tab
         document.getElementById('spendToday').innerText = `₹${todaySpent.toLocaleString('en-IN')}`;
         document.getElementById('spendWeek').innerText = `₹${weekSpent.toLocaleString('en-IN')}`;
         document.getElementById('spendYear').innerText = `₹${yearSpent.toLocaleString('en-IN')}`;
