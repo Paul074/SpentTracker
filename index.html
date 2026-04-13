@@ -31,7 +31,7 @@
             box-shadow: 0 4px 20px rgba(0,0,0,0.04);
         }
         .label { font-size: 13px; color: var(--subtext); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        .total-number { font-size: 40px; font-weight: 800; margin: 5px 0 20px 0; letter-spacing: -1px; transition: color 0.3s; }
+        .total-number { font-size: 40px; font-weight: 800; margin: 5px 0 5px 0; letter-spacing: -1px; transition: color 0.3s; }
         
         /* Bar Chart */
         .chart-container { display: flex; justify-content: space-between; align-items: flex-end; height: 120px; border-bottom: 1px solid #e5e5ea; padding-bottom: 10px; margin-bottom: 10px; }
@@ -74,6 +74,7 @@
     <div class="card">
         <div class="label">Total Spending</div>
         <div class="total-number" id="displaySpent">₹0</div>
+        <div id="homeTargetStatus" style="font-size: 13px; font-weight: 600; margin-bottom: 15px; display: none;"></div>
         
         <div class="chart-container" id="chartBars"></div>
     </div>
@@ -227,16 +228,34 @@
             }
         });
 
-        document.getElementById('displaySpent').innerText = `₹${totalSpent.toLocaleString('en-IN')}`;
+        // Home Tab Logic
+        const displaySpentEl = document.getElementById('displaySpent');
+        const homeTargetStatus = document.getElementById('homeTargetStatus');
+        const targetAmount = db.target || 0;
+
+        displaySpentEl.innerText = `₹${totalSpent.toLocaleString('en-IN')}`;
         document.getElementById('recentExpenses').innerHTML = recentHTML || '<div class="label" style="text-align:center; margin-top:40px;">No expenses yet</div>';
         
+        if (targetAmount > 0 && totalSpent > targetAmount) {
+            displaySpentEl.style.color = "var(--danger)";
+            homeTargetStatus.style.display = "block";
+            homeTargetStatus.style.color = "var(--danger)";
+            homeTargetStatus.innerText = "⚠️ Monthly target crossed";
+        } else {
+            displaySpentEl.style.color = "var(--text)";
+            homeTargetStatus.style.display = "none";
+        }
+
+        // Chart Logic
         const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         let chartHTML = '';
         for(let i=0; i<7; i++) {
             const heightPct = (dailyTotals[i] / maxDaily) * 100;
+            // Turn specific day bar red if total spent is over budget
+            const barColor = (targetAmount > 0 && totalSpent > targetAmount) ? "var(--danger)" : "var(--accent)";
             chartHTML += `
                 <div class="bar-wrapper">
-                    <div class="bar" style="height: ${Math.max(heightPct, 2)}%;"></div>
+                    <div class="bar" style="height: ${Math.max(heightPct, 2)}%; background: ${barColor};"></div>
                     <div class="day-label">${days[i]}</div>
                 </div>`;
         }
@@ -245,21 +264,18 @@
         // Dynamic Summary Logic
         document.getElementById('incomeDisplay').innerText = `₹${totalIncome.toLocaleString('en-IN')}`;
         
-        const targetAmount = db.target || 0;
         const rem = targetAmount - totalSpent;
         const mainDisplay = document.getElementById('targetDisplay');
         const subDisplay = document.getElementById('targetStatus');
         const cardLabel = document.getElementById('targetCardLabel');
         
         if (rem < 0) {
-            // Over budget state
             cardLabel.innerText = "OVERSPENT BY";
             cardLabel.style.color = "var(--danger)";
             mainDisplay.innerText = `₹${Math.abs(rem).toLocaleString('en-IN')}`;
             mainDisplay.style.color = "var(--danger)";
             subDisplay.innerText = `Monthly target was ₹${targetAmount.toLocaleString('en-IN')}`;
         } else {
-            // Under budget state
             cardLabel.innerText = "REMAINING BUDGET";
             cardLabel.style.color = "var(--subtext)";
             mainDisplay.innerText = `₹${rem.toLocaleString('en-IN')}`;
