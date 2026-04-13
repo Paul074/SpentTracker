@@ -29,9 +29,9 @@
         .card { background: var(--card); border-radius: 24px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); position: relative; }
         .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .label { font-size: 13px; color: var(--subtext); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-        .total-number { font-size: 40px; font-weight: 800; margin: 5px 0 5px 0; letter-spacing: -1px; transition: color 0.3s; }
+        .total-number { font-size: 40px; font-weight: 800; margin: 5px 0 5px 0; letter-spacing: -1px; transition: color 0.3s; text-align: center;}
         
-        .alert-box { background: var(--danger-light); color: var(--danger); padding: 8px 12px; border-radius: 8px; display: inline-block; margin-bottom: 15px; font-size: 13px; font-weight: 700; display: none; }
+        .alert-box { background: var(--danger-light); color: var(--danger); padding: 8px 12px; border-radius: 8px; display: inline-block; margin-bottom: 15px; font-size: 13px; font-weight: 700; display: none; width: 100%; box-sizing: border-box; text-align: center;}
         .icon-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--subtext); padding: 0; }
 
         /* Chart & Toggles */
@@ -94,10 +94,18 @@
     </div>
 
     <div class="card">
-        <div class="label">Total Spending</div>
-        <div class="total-number" id="displaySpent">₹0</div>
+        <div style="text-align: center;">
+            <div class="label">Total Spending</div>
+            <div class="total-number" id="displaySpent">₹0</div>
+        </div>
         <div class="alert-box" id="homeTargetStatus">⚠️ Monthly target crossed</div>
         
+        <div style="text-align: center; margin-bottom: 20px;">
+            <button onclick="resetDatabase()" style="color: var(--danger); background: none; border: none; font-size: 14px; font-weight: 600; cursor: pointer; padding: 0;">
+                🗑️ Reset All Data
+            </button>
+        </div>
+
         <div class="chart-toggles">
             <div class="chart-toggle active" id="toggle-day" onclick="setChartView('day')">Day</div>
             <div class="chart-toggle" id="toggle-week" onclick="setChartView('week')">Week</div>
@@ -194,11 +202,14 @@
 <script>
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
     
+    // Default Category List for reset
+    const defaultCategories = ["🍔 Food", "🚌 Transport", "🛍️ Shopping", "💡 Bills", "💊 Health", "📦 Other"];
+    
     let db = JSON.parse(localStorage.getItem('kite_db')) || { transactions: [], target: 0 };
-    if (!db.categories) db.categories = ["🍔 Food", "🚌 Transport", "🛍️ Shopping", "💡 Bills", "💊 Health", "📦 Other"];
+    if (!db.categories) db.categories = [...defaultCategories];
     
     let editingId = null;
-    let activeCategoryFilter = 'All Expenses'; // Default is now Expenses only
+    let activeCategoryFilter = 'All Expenses'; 
     let currentChartView = 'day';
     const getCurrentMonthId = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
 
@@ -343,6 +354,31 @@
         saveDb();
         closeModal(null, 'inputModal', true);
         calculateStats();
+    }
+
+    // New Destructive Reset Function
+    function resetDatabase() {
+        // Essential safety gate to prevent accidental full deletion
+        if(!confirm("⚠️ DANGER: This will permanently delete ALL transaction history, settings, and targets. You cannot undo this. Are you absolutely sure?")) return;
+        
+        // Fully reset data structure to initial state
+        db = {
+            transactions: [],
+            categories: [...defaultCategories],
+            target: 0
+        };
+        
+        // Commit catastrophic change to storage
+        saveDb();
+        
+        // Clean up UI state
+        activeCategoryFilter = 'All Expenses';
+        populateCategorySelects();
+        
+        // Refresh display
+        calculateStats();
+        
+        alert("Database reset successful.");
     }
 
     function exportExcel() {
