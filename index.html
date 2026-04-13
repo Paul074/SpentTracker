@@ -28,6 +28,7 @@
         .container { padding: 20px; }
         .card { background: var(--card); border-radius: 24px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); position: relative; }
         .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .header-actions { display: flex; align-items: center; gap: 15px; }
         .label { font-size: 13px; color: var(--subtext); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
         .total-number { font-size: 40px; font-weight: 800; margin: 5px 0 5px 0; letter-spacing: -1px; transition: color 0.3s; text-align: center;}
         
@@ -90,7 +91,10 @@
 <div class="container tab-content active" id="home">
     <div class="header-flex">
         <h2 style="margin: 0; font-size: 24px; letter-spacing: -0.5px;">Dashboard</h2>
-        <button class="icon-btn" onclick="openSettings()">⚙️</button>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="resetDatabase()" style="color: var(--danger);">🗑️</button>
+            <button class="icon-btn" onclick="openSettings()">⚙️</button>
+        </div>
     </div>
 
     <div class="card">
@@ -100,12 +104,6 @@
         </div>
         <div class="alert-box" id="homeTargetStatus">⚠️ Monthly target crossed</div>
         
-        <div style="text-align: center; margin-bottom: 20px;">
-            <button onclick="resetDatabase()" style="color: var(--danger); background: none; border: none; font-size: 14px; font-weight: 600; cursor: pointer; padding: 0;">
-                🗑️ Reset All Data
-            </button>
-        </div>
-
         <div class="chart-toggles">
             <div class="chart-toggle active" id="toggle-day" onclick="setChartView('day')">Day</div>
             <div class="chart-toggle" id="toggle-week" onclick="setChartView('week')">Week</div>
@@ -127,13 +125,18 @@
         <h1 style="font-size: 32px; letter-spacing: -1px; margin-top: 8px;">Spending Trends<br>at a Glance.</h1>
     </div>
 
+    <div class="card" style="text-align: center; padding: 24px;">
+        <div class="label">Spent This Month</div>
+        <div class="total-number" id="spendMonthWidget" style="font-size: 32px; margin-bottom: 0;">₹0</div>
+    </div>
+
     <div class="widget-grid">
         <div class="widget-card">
-            <div class="label" style="font-size: 11px;">Today</div>
+            <div class="label" style="font-size: 11px;">Spent Today</div>
             <div class="total-number" id="spendToday" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
         <div class="widget-card">
-            <div class="label" style="font-size: 11px;">This Week</div>
+            <div class="label" style="font-size: 11px;">Spent This Week</div>
             <div class="total-number" id="spendWeek" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
     </div>
@@ -356,26 +359,19 @@
         calculateStats();
     }
 
-    // New Destructive Reset Function
+    // Dangerous Reset remains but moved visually and symbol-only
     function resetDatabase() {
-        // Essential safety gate to prevent accidental full deletion
         if(!confirm("⚠️ DANGER: This will permanently delete ALL transaction history, settings, and targets. You cannot undo this. Are you absolutely sure?")) return;
         
-        // Fully reset data structure to initial state
         db = {
             transactions: [],
             categories: [...defaultCategories],
             target: 0
         };
         
-        // Commit catastrophic change to storage
         saveDb();
-        
-        // Clean up UI state
         activeCategoryFilter = 'All Expenses';
         populateCategorySelects();
-        
-        // Refresh display
         calculateStats();
         
         alert("Database reset successful.");
@@ -588,6 +584,8 @@
         document.getElementById('spendToday').innerText = `₹${todaySpent.toLocaleString('en-IN')}`;
         document.getElementById('spendWeek').innerText = `₹${weekSpent.toLocaleString('en-IN')}`;
         
+        // NEW widget population
+        document.getElementById('spendMonthWidget').innerText = `₹${monthSpent.toLocaleString('en-IN')}`;
         document.getElementById('incomeMonthWidget').innerText = `₹${monthIncome.toLocaleString('en-IN')}`;
         
         const monthSaved = monthIncome - monthSpent;
