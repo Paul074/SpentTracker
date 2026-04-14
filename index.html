@@ -17,6 +17,7 @@
             --success: #34c759;
             --success-light: rgba(52, 199, 89, 0.1);
             --warning: #ff9500;
+            --info: #0a84ff;
         }
         body {
             background-color: var(--bg);
@@ -29,7 +30,7 @@
         .container { padding: 20px; }
         .card { background: var(--card); border-radius: 24px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); position: relative; }
         
-        .card-dark { background: #1c1c1e; color: #ffffff; border-radius: 24px; padding: 30px 24px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); text-align: center;}
+        .card-dark { background: #1c1c1e; color: #ffffff; border-radius: 24px; padding: 30px 20px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); text-align: center;}
         
         .header-flex { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
         .header-actions { display: flex; align-items: center; gap: 15px; }
@@ -165,18 +166,23 @@
 </div>
 
 <div class="container tab-content" id="summary">
+    
     <div class="card-dark">
         <div class="label" style="color: #a1a1a6; margin-bottom: 5px;">True Net Worth</div>
-        <div class="total-number" id="netWorthDisplay" style="color: #ffffff; font-size: 48px; margin-bottom: 25px;">₹0</div>
+        <div class="total-number" id="netWorthDisplay" style="color: #ffffff; font-size: 44px; margin-bottom: 25px;">₹0</div>
         
         <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
-            <div style="text-align: left;">
-                <div class="label" style="color: #a1a1a6; font-size: 11px;">Total Assets</div>
-                <div style="color: var(--success); font-weight: 700; font-size: 18px;" id="nwAssets">₹0</div>
+            <div style="text-align: center; flex: 1;">
+                <div class="label" style="color: #a1a1a6; font-size: 10px;">Assets</div>
+                <div style="color: var(--success); font-weight: 700; font-size: 15px;" id="nwAssets">₹0</div>
             </div>
-            <div style="text-align: right;">
-                <div class="label" style="color: #a1a1a6; font-size: 11px;">Total Debt</div>
-                <div style="color: var(--danger); font-weight: 700; font-size: 18px;" id="nwDebt">₹0</div>
+            <div style="text-align: center; flex: 1; border-left: 1px solid rgba(255,255,255,0.1); border-right: 1px solid rgba(255,255,255,0.1);">
+                <div class="label" style="color: #a1a1a6; font-size: 10px;">Cash</div>
+                <div style="color: var(--info); font-weight: 700; font-size: 15px;" id="nwCash">₹0</div>
+            </div>
+            <div style="text-align: center; flex: 1;">
+                <div class="label" style="color: #a1a1a6; font-size: 10px;">Debt</div>
+                <div style="color: var(--danger); font-weight: 700; font-size: 15px;" id="nwDebt">₹0</div>
             </div>
         </div>
     </div>
@@ -297,8 +303,14 @@
 <div class="modal-overlay" id="settingsModal" onclick="closeModal(event, 'settingsModal')">
     <div class="modal-content" onclick="event.stopPropagation()">
         <button class="close-btn" onclick="closeModal(null, 'settingsModal', true)">×</button>
-        <h2 style="margin-bottom: 24px;">Categories & Limits</h2>
+        <h2 style="margin-bottom: 24px;">Settings</h2>
         
+        <div style="font-size: 11px; color: var(--subtext); margin-bottom: 10px; font-weight: 600; text-transform: uppercase;">Liquid Cash Config</div>
+        <div style="display: flex; gap: 10px; margin-bottom: 30px;">
+            <input type="number" id="startingBankBalance" placeholder="Starting Bank Balance ₹" value="" style="margin: 0; padding: 14px;">
+            <button class="btn-main" style="margin: 0; width: 100px; padding: 14px;" onclick="saveBankBalance()">Save</button>
+        </div>
+
         <div style="font-size: 11px; color: var(--subtext); margin-bottom: 10px; font-weight: 600;">ENVELOPE BUDGETING (SET MONTHLY LIMITS)</div>
         <div id="categoryListContainer" style="margin-bottom: 20px;"></div>
         
@@ -371,12 +383,10 @@
             <input type="number" id="fdTenure" placeholder="Tenure (Months)" style="margin-bottom: 0;">
         </div>
 
-        <input type="number" id="savInvested" placeholder="Total Principal Invested ₹">
-        <input type="number" id="savCurrent" placeholder="Current Market Value ₹">
-        <input type="number" id="savRate" placeholder="Interest Rate % (Optional)">
+        <input type="number" id="savInvested" placeholder="Total Principal Invested ₹"><input type="number" id="savCurrent" placeholder="Current Market Value ₹"><input type="number" id="savRate" placeholder="Interest Rate % (Optional)">
         
         <div id="sipSection" style="display: flex; gap: 10px; margin-top: 16px;">
-            <input type="number" id="savSipAmount" placeholder="Monthly Auto-Invest ₹" style="margin-bottom: 0; flex: 1;"><input type="number" id="savSipDate" placeholder="Date (1-31)" min="1" max="31" style="margin-bottom: 0; flex: 1;">
+            <input type="number" id="savSipAmount" placeholder="Monthly SIP/Auto-Debit ₹" style="margin-bottom: 0; flex: 1;"><input type="number" id="savSipDate" placeholder="Date (1-31)" min="1" max="31" style="margin-bottom: 0; flex: 1;">
         </div>
         <p id="sipDisclaimer" style="font-size: 11px; color: var(--subtext); margin-top: 8px; margin-bottom: 16px; font-weight: 500;">*Leave blank if no automated monthly investment.</p>
         
@@ -420,6 +430,7 @@
     
     const defaultCategories = ["🍔 Food", "🚌 Transport", "🛍️ Shopping", "💡 Bills", "💊 Health", "📦 Other"];
     
+    // Core DB Initialization
     let db = JSON.parse(localStorage.getItem('kite_db')) || { transactions: [], target: 0 };
     if (!db.categories) db.categories = [...defaultCategories];
     if (!db.categoryLimits) db.categoryLimits = {};
@@ -427,6 +438,7 @@
     if (!db.creditCards) db.creditCards = [];
     if (!db.loans) db.loans = [];
     if (!db.savings) db.savings = [];
+    if (db.startingBankBalance === undefined) db.startingBankBalance = 0;
     
     let editingId = null; let editingCreditId = null; let editingLoanId = null; let editingSavingsId = null;
     let selectedSavingsType = ''; let selectedSavingsIcon = '';
@@ -590,7 +602,16 @@
         document.getElementById('deleteBtn').style.display = 'block'; document.getElementById('inputModal').classList.add('active');
     }
 
-    function openSettings() { renderCategorySettings(); document.getElementById('settingsModal').classList.add('active'); }
+    function openSettings() { 
+        document.getElementById('startingBankBalance').value = db.startingBankBalance || '';
+        renderCategorySettings(); 
+        document.getElementById('settingsModal').classList.add('active'); 
+    }
+
+    function saveBankBalance() {
+        db.startingBankBalance = Number(document.getElementById('startingBankBalance').value) || 0;
+        saveDb(); calculateStats(); alert("Starting balance updated.");
+    }
     
     function toggleFields() {
         const type = document.getElementById('entryType').value;
@@ -692,7 +713,7 @@
 
     function resetDatabase() {
         if(!confirm("⚠️ DANGER: This will permanently delete ALL data. Are you absolutely sure?")) return;
-        db = { transactions: [], categories: [...defaultCategories], categoryLimits: {}, target: 0, creditCards: [], loans: [], savings: [], recurringOverheads: [] };
+        db = { transactions: [], categories: [...defaultCategories], categoryLimits: {}, target: 0, creditCards: [], loans: [], savings: [], recurringOverheads: [], startingBankBalance: 0 };
         saveDb(); activeCategoryFilter = 'All Expenses'; populateCategorySelects(); populateDropdowns(); calculateStats(); renderCreditTab(); renderSavingsTab();
         alert("Database reset successful.");
     }
@@ -779,97 +800,58 @@
         }
     }
 
-    // --- Dynamic Savings Modals ---
     function openSelectInstrumentModal() { document.getElementById('selectInstrumentModal').classList.add('active'); }
-    
     function toggleSavingsFields(type) {
-        const npsBlock = document.getElementById('npsAllocationSection');
-        const fdBlock = document.getElementById('fdSpecificSection');
-        const currentInput = document.getElementById('savCurrent');
-        const sipSection = document.getElementById('sipSection');
+        const npsBlock = document.getElementById('npsAllocationSection'); const fdBlock = document.getElementById('fdSpecificSection');
+        const currentInput = document.getElementById('savCurrent'); const sipSection = document.getElementById('sipSection');
         const sipDisclaimer = document.getElementById('sipDisclaimer');
-
-        // Defaults
-        npsBlock.style.display = 'none';
-        fdBlock.style.display = 'none';
-        currentInput.style.display = 'block';
-        sipSection.style.display = 'flex';
-        sipDisclaimer.style.display = 'block';
-
-        if (type === 'NPS') {
-            npsBlock.style.display = 'block';
-        } else if (type === 'Fixed Deposit') {
-            fdBlock.style.display = 'block';
-            currentInput.style.display = 'none'; // Auto-calculated
-            sipSection.style.display = 'none'; // FDs don't have monthly SIPs
-            sipDisclaimer.style.display = 'none';
-        }
+        npsBlock.style.display = 'none'; fdBlock.style.display = 'none'; currentInput.style.display = 'block'; sipSection.style.display = 'flex'; sipDisclaimer.style.display = 'block';
+        if (type === 'NPS') { npsBlock.style.display = 'block'; } 
+        else if (type === 'Fixed Deposit') { fdBlock.style.display = 'block'; currentInput.style.display = 'none'; sipSection.style.display = 'none'; sipDisclaimer.style.display = 'none'; }
     }
-
     function openAddSavingsModal(type, icon) {
         closeModal(null, 'selectInstrumentModal', true); editingSavingsId = null; selectedSavingsType = type; selectedSavingsIcon = icon;
         document.getElementById('savingsModalTitle').innerText = `Add ${type}`; document.getElementById('savName').value = ''; document.getElementById('savInvested').value = '';
         document.getElementById('savCurrent').value = ''; document.getElementById('savRate').value = ''; document.getElementById('savSipAmount').value = ''; document.getElementById('savSipDate').value = '';
-        
         toggleSavingsFields(type);
-        
         if (type === 'NPS') { document.getElementById('npsE').value = ''; document.getElementById('npsC').value = ''; document.getElementById('npsG').value = ''; } 
         if (type === 'Fixed Deposit') { document.getElementById('fdStartDate').value = ''; document.getElementById('fdTenure').value = ''; }
-
-        document.getElementById('deleteSavBtn').style.display = 'none';
-        document.getElementById('redeemSavBtn').style.display = 'none';
-        document.getElementById('addSavingsModal').classList.add('active');
+        document.getElementById('deleteSavBtn').style.display = 'none'; document.getElementById('redeemSavBtn').style.display = 'none'; document.getElementById('addSavingsModal').classList.add('active');
     }
-
     function editSavings(id) {
         editingSavingsId = id; const sav = db.savings.find(s => s.id === id); if(!sav) return;
         selectedSavingsType = sav.type; selectedSavingsIcon = sav.icon;
         document.getElementById('savingsModalTitle').innerText = `Edit ${sav.type}`; document.getElementById('savName').value = sav.name; document.getElementById('savInvested').value = sav.invested;
         document.getElementById('savCurrent').value = sav.current; document.getElementById('savRate').value = sav.rate || ''; document.getElementById('savSipAmount').value = sav.sipAmount || ''; document.getElementById('savSipDate').value = sav.sipDate || '';
-        
         toggleSavingsFields(sav.type);
-
         if (sav.type === 'NPS') {
             document.getElementById('npsE').value = sav.allocations ? sav.allocations.e : ''; document.getElementById('npsC').value = sav.allocations ? sav.allocations.c : ''; document.getElementById('npsG').value = sav.allocations ? sav.allocations.g : '';
         } 
         if (sav.type === 'Fixed Deposit') {
             document.getElementById('fdStartDate').value = sav.fdStartDate || ''; document.getElementById('fdTenure').value = sav.fdTenure || '';
         }
-
-        document.getElementById('deleteSavBtn').style.display = 'block';
-        document.getElementById('redeemSavBtn').style.display = 'block';
-        document.getElementById('addSavingsModal').classList.add('active');
+        document.getElementById('deleteSavBtn').style.display = 'block'; document.getElementById('redeemSavBtn').style.display = 'block'; document.getElementById('addSavingsModal').classList.add('active');
     }
-
     function saveSavings() {
         const name = document.getElementById('savName').value.trim(); const invested = Number(document.getElementById('savInvested').value);
         const rate = document.getElementById('savRate').value ? Number(document.getElementById('savRate').value) : null;
         let current = Number(document.getElementById('savCurrent').value);
-        
         if (!name || !invested) return alert("Name and Invested Principal are required.");
-
         const sipAmount = Number(document.getElementById('savSipAmount').value) || null; const sipDate = Number(document.getElementById('savSipDate').value) || null;
         if (selectedSavingsType !== 'Fixed Deposit') {
-            if (!current) return alert("Current Value is required.");
+            if (!current && current !== 0) return alert("Current Value is required.");
             if ((sipAmount && !sipDate) || (!sipAmount && sipDate)) return alert("Provide BOTH Auto-Invest Amount and Date, or leave blank.");
             if (sipDate !== null && (sipDate < 1 || sipDate > 31)) return alert("Date must be between 1 and 31.");
-        } else {
-            current = 0; // Handled dynamically for FD
-        }
-
+        } else { current = 0; }
         let allocations = null; let fdStartDate = null; let fdTenure = null;
-        
         if (selectedSavingsType === 'NPS') {
             const e = Number(document.getElementById('npsE').value); const c = Number(document.getElementById('npsC').value); const g = Number(document.getElementById('npsG').value);
             if (e + c + g !== 100) return alert("NPS Allocations must equal 100%."); allocations = { e, c, g };
         }
-
         if (selectedSavingsType === 'Fixed Deposit') {
-            fdStartDate = document.getElementById('fdStartDate').value;
-            fdTenure = Number(document.getElementById('fdTenure').value);
+            fdStartDate = document.getElementById('fdStartDate').value; fdTenure = Number(document.getElementById('fdTenure').value);
             if (!fdStartDate || !fdTenure) return alert("Booking Date and Tenure are required for Fixed Deposits.");
         }
-
         if (editingSavingsId) {
             const index = db.savings.findIndex(s => s.id === editingSavingsId); 
             db.savings[index] = { id: editingSavingsId, type: selectedSavingsType, icon: selectedSavingsIcon, name, invested, current, rate, allocations, sipAmount, sipDate, fdStartDate, fdTenure };
@@ -878,50 +860,23 @@
         }
         saveDb(); closeModal(null, 'addSavingsModal', true); renderSavingsTab(); calculateStats();
     }
-
     function deleteSavings() {
-        if(!confirm("Delete this asset? This will completely remove it from history without adding the cash back to your bank account. Use 'Liquidate & Redeem' if you sold it.")) return; 
-        db.savings = db.savings.filter(s => s.id !== editingSavingsId);
-        saveDb(); closeModal(null, 'addSavingsModal', true); renderSavingsTab(); calculateStats();
+        if(!confirm("Delete this asset? This removes it without adding cash back. Use 'Liquidate & Redeem' if you sold it.")) return; 
+        db.savings = db.savings.filter(s => s.id !== editingSavingsId); saveDb(); closeModal(null, 'addSavingsModal', true); renderSavingsTab(); calculateStats();
     }
-
-    // --- FEATURE: Asset Liquidation ---
     function redeemSavings() {
-        const sav = db.savings.find(s => s.id === editingSavingsId);
-        if(!sav) return;
-
+        const sav = db.savings.find(s => s.id === editingSavingsId); if(!sav) return;
         let suggestedVal = sav.current;
         if (sav.type === 'Fixed Deposit' && sav.fdStartDate) {
-            const start = new Date(sav.fdStartDate).getTime();
-            const days = Math.max(0, (Date.now() - start) / (1000 * 60 * 60 * 24));
+            const start = new Date(sav.fdStartDate).getTime(); const days = Math.max(0, (Date.now() - start) / (1000 * 60 * 60 * 24));
             suggestedVal = Math.round(sav.invested * Math.pow(1 + ((sav.rate||0)/100), days/365));
         }
-
         const rawAmount = window.prompt(`LIQUIDATE ASSET\n\nEnter the final cash amount deposited into your bank account for [${sav.name}]:`, suggestedVal);
-        if (rawAmount === null) return; // Cancelled
-        
-        const finalAmount = Number(rawAmount);
-        if (isNaN(finalAmount) || finalAmount <= 0) return alert("Invalid amount. Liquidation cancelled.");
-
-        // 1. Create Income Transaction
-        db.transactions.push({ 
-            id: Date.now(), 
-            type: 'income', 
-            amount: finalAmount, 
-            title: `Liquidation: ${sav.name}`, 
-            category: 'Asset Liquidation', 
-            paymentMethod: 'Cash/Bank',
-            month: getCurrentMonthId(), 
-            timestamp: new Date().toISOString() 
-        });
-
-        // 2. Remove Asset
+        if (rawAmount === null) return;
+        const finalAmount = Number(rawAmount); if (isNaN(finalAmount) || finalAmount <= 0) return alert("Invalid amount. Liquidation cancelled.");
+        db.transactions.push({ id: Date.now(), type: 'income', amount: finalAmount, title: `Liquidation: ${sav.name}`, category: 'Asset Liquidation', paymentMethod: 'Cash/Bank', month: getCurrentMonthId(), timestamp: new Date().toISOString() });
         db.savings = db.savings.filter(s => s.id !== editingSavingsId);
-        
-        saveDb(); 
-        closeModal(null, 'addSavingsModal', true); 
-        renderSavingsTab(); 
-        calculateStats();
+        saveDb(); closeModal(null, 'addSavingsModal', true); renderSavingsTab(); calculateStats();
         alert(`Successfully liquidated ${sav.name}. ₹${finalAmount.toLocaleString('en-IN')} added to Income.`);
     }
 
@@ -930,28 +885,19 @@
         if (db.savings.length === 0) container.innerHTML = '<div class="label" style="text-align:center; margin: 40px 0;">No assets added yet</div>';
         else {
             container.innerHTML = db.savings.map(s => {
-                let actualCurrent = s.current;
-                let fdBadge = '';
-                
-                // Dynamic FD Accrual Logic
+                let actualCurrent = s.current; let fdBadge = '';
                 if (s.type === 'Fixed Deposit' && s.fdStartDate) {
-                    const start = new Date(s.fdStartDate).getTime();
-                    const days = Math.max(0, (Date.now() - start) / (1000 * 60 * 60 * 24));
+                    const start = new Date(s.fdStartDate).getTime(); const days = Math.max(0, (Date.now() - start) / (1000 * 60 * 60 * 24));
                     actualCurrent = Math.round(s.invested * Math.pow(1 + ((s.rate||0)/100), days/365));
-                    
-                    const matDate = new Date(start);
-                    matDate.setMonth(matDate.getMonth() + s.fdTenure);
+                    const matDate = new Date(start); matDate.setMonth(matDate.getMonth() + s.fdTenure);
                     fdBadge = `<div style="font-size: 11px; color: var(--subtext); margin-top: 4px; font-weight: 600;">Matures: ${matDate.toLocaleDateString('en-GB')}</div>`;
                 }
-
                 totalInvested += s.invested; totalCurrent += actualCurrent;
                 const absReturn = actualCurrent - s.invested; const pctReturn = ((absReturn / s.invested) * 100).toFixed(1);
                 const isPositive = absReturn >= 0; const pillClass = isPositive ? 'pos' : 'neg'; const sign = isPositive ? '+' : '';
                 const rateText = s.rate ? `<span style="font-size: 11px; color: var(--subtext); margin-left: 5px;">(${s.rate}% APY)</span>` : '';
-                
                 let npsBadge = ''; if (s.type === 'NPS' && s.allocations) npsBadge = `<div style="font-size: 11px; color: var(--subtext); margin-top: 4px; font-weight: 600;">E: ${s.allocations.e}% • C: ${s.allocations.c}% • G: ${s.allocations.g}%</div>`;
                 let sipBadge = ''; if (s.sipAmount && s.sipDate) sipBadge = `<div style="font-size: 11px; color: var(--accent); margin-top: 4px; font-weight: 700;">🔄 SIP: ₹${s.sipAmount.toLocaleString('en-IN')} on Day ${s.sipDate}</div>`;
-                
                 return `<div class="expense-item" onclick="editSavings(${s.id})">
                     <div class="expense-left"><div class="icon-box">${s.icon}</div>
                         <div><div class="title" style="font-size: 15px;">${s.name} ${rateText}</div><div class="date">Inv: ₹${s.invested.toLocaleString('en-IN')}</div>${npsBadge}${sipBadge}${fdBadge}</div></div>
@@ -1019,35 +965,48 @@
         const startOfWeek = new Date(todayStart); startOfWeek.setDate(now.getDate() - now.getDay()); const weekStartMs = startOfWeek.getTime();
         const currentMonthName = now.toLocaleString('en-US', { month: 'long' });
 
-        // NET WORTH ENGINE
-        const balances = getDerivedBalances();
-        let totalDebt = 0;
-        db.creditCards.forEach(c => { const initU = c.initialUtilized !== undefined ? c.initialUtilized : (c.utilized || 0); totalDebt += Math.max(0, initU + (balances.ccUsage[c.id] || 0)); });
-        db.loans.forEach(l => { const initP = l.initialPrincipal !== undefined ? l.initialPrincipal : (l.principal || 0); totalDebt += Math.max(0, initP - (balances.loanPaid[l.id] || 0)); });
-        
-        let totalAssets = 0; 
-        db.savings.forEach(s => { 
+        // --- NET WORTH ENGINE WITH LIQUID CASH LOGIC ---
+        let allTimeIncome = 0; let allTimeCashSpent = 0; let allTimeRepayments = 0;
+        db.transactions.forEach(t => {
+            if (t.type === 'income') allTimeIncome += t.amount;
+            if (t.type === 'expense' && t.paymentMethod === 'Cash/Bank') allTimeCashSpent += t.amount;
+            if (t.type === 'repayment') allTimeRepayments += t.amount;
+        });
+
+        let totalInvestedInAssets = 0; let totalCurrentAssets = 0;
+        db.savings.forEach(s => {
+            totalInvestedInAssets += s.invested;
             let val = s.current || 0;
             if (s.type === 'Fixed Deposit' && s.fdStartDate) {
                 const start = new Date(s.fdStartDate).getTime();
                 const days = Math.max(0, (Date.now() - start) / (1000 * 60 * 60 * 24));
                 val = Math.round(s.invested * Math.pow(1 + ((s.rate||0)/100), days/365));
             }
-            totalAssets += val; 
+            totalCurrentAssets += val;
         });
+
+        let liquidCash = (db.startingBankBalance || 0) + allTimeIncome - allTimeCashSpent - allTimeRepayments - totalInvestedInAssets;
+
+        const balances = getDerivedBalances();
+        let totalDebt = 0;
+        db.creditCards.forEach(c => { const initU = c.initialUtilized !== undefined ? c.initialUtilized : (c.utilized || 0); totalDebt += Math.max(0, initU + (balances.ccUsage[c.id] || 0)); });
+        db.loans.forEach(l => { const initP = l.initialPrincipal !== undefined ? l.initialPrincipal : (l.principal || 0); totalDebt += Math.max(0, initP - (balances.loanPaid[l.id] || 0)); });
         
-        const netWorth = totalAssets - totalDebt;
+        const netWorth = totalCurrentAssets + liquidCash - totalDebt;
+        
         document.getElementById('netWorthDisplay').innerText = `₹${netWorth.toLocaleString('en-IN')}`;
-        document.getElementById('nwAssets').innerText = `₹${totalAssets.toLocaleString('en-IN')}`;
+        document.getElementById('nwAssets').innerText = `₹${totalCurrentAssets.toLocaleString('en-IN')}`;
+        document.getElementById('nwCash').innerText = `₹${liquidCash.toLocaleString('en-IN')}`;
         document.getElementById('nwDebt').innerText = `₹${totalDebt.toLocaleString('en-IN')}`;
 
+        // --- DASHBOARD METRICS ---
         document.getElementById('labelSpendMonth').innerText = `Spent in ${currentMonthName}`;
         document.getElementById('labelIncomeMonth').innerText = `${currentMonthName} Income`;
         document.getElementById('labelSavedMonth').innerText = `Saved in ${currentMonthName}`;
 
         let monthIncome = 0, monthSpent = 0, todaySpent = 0, weekSpent = 0;
         let usedCategories = new Set(); let filteredExpenses = [];
-        let categorySpendMap = {};
+        let categorySpendMap = {}; 
 
         const allExp = db.transactions.filter(t => t.type === 'expense');
         allExp.forEach(t => {
