@@ -163,20 +163,14 @@
             <div class="total-number" id="spendWeek" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
         <div class="widget-card">
-            <div class="label" style="font-size: 11px;">Avg Daily Spend</div>
-            <div class="total-number" id="avgDailySpend" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
-        </div>
-    </div>
-
-    <div class="widget-grid">
-        <div class="widget-card">
-            <div class="label" id="labelIncomeMonth" style="font-size: 11px;">Month Income</div>
-            <div class="total-number" id="incomeMonthWidget" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
-        </div>
-        <div class="widget-card">
             <div class="label" id="labelSavedMonth" style="font-size: 11px;">Saved This Month</div>
             <div class="total-number" id="savedMonth" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
+    </div>
+
+    <div class="card" style="text-align: center; padding: 24px;">
+        <div class="label" id="labelIncomeMonth">Month Income</div>
+        <div class="total-number" id="incomeMonthWidget" style="font-size: 32px; margin-bottom: 0;">₹0</div>
     </div>
 
     <div class="card" style="text-align: center; padding: 30px;">
@@ -331,7 +325,7 @@
     }
 
     function openWealthModal() {
-        calculateStats(); // Ensure latest data for SIP
+        calculateStats(); 
         document.getElementById('wealthModal').classList.add('active');
     }
 
@@ -730,7 +724,6 @@
         document.getElementById('toggle-' + currentChartView).classList.add('active');
 
         const rem = targetAmount - monthSpent;
-        const avgDaily = monthSpent / daysPassed;
         const safeDaily = rem > 0 ? Math.floor(rem / daysRemaining) : 0;
 
         const spendTodayEl = document.getElementById('spendToday');
@@ -744,8 +737,6 @@
         document.getElementById('spendWeek').innerText = `₹${weekSpent.toLocaleString('en-IN')}`;
         document.getElementById('spendMonthWidget').innerText = `₹${monthSpent.toLocaleString('en-IN')}`;
         document.getElementById('incomeMonthWidget').innerText = `₹${monthIncome.toLocaleString('en-IN')}`;
-        
-        document.getElementById('avgDailySpend').innerText = `₹${Math.round(avgDaily).toLocaleString('en-IN')}`;
         
         const safeDailyEl = document.getElementById('safeDailyLimit');
         safeDailyEl.innerText = `₹${safeDaily.toLocaleString('en-IN')}`;
@@ -771,7 +762,6 @@
             subDisplay.innerText = `Monthly target is ₹${targetAmount.toLocaleString('en-IN')}`;
         }
 
-        // DYNAMIC SIP COMPUTATION FOR WEALTH MODAL
         const sipDisplay = document.getElementById('sipDisplay');
         const sipDesc = document.getElementById('sipDesc');
         if (monthSaved > 0) {
