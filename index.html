@@ -26,7 +26,7 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 0;
             padding: 0;
-            padding-bottom: 140px; /* Enhanced Spacing to clear Nav Bar */
+            padding-bottom: 140px; 
         }
         .container { padding: 20px; }
         .card { background: var(--card); border-radius: 24px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); position: relative; }
@@ -41,7 +41,6 @@
         .alert-box { background: var(--danger-light); color: var(--danger); padding: 8px 12px; border-radius: 8px; display: inline-block; margin-bottom: 15px; font-size: 13px; font-weight: 700; display: none; width: 100%; box-sizing: border-box; text-align: center;}
         .icon-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--subtext); padding: 0; display: flex; align-items: center; justify-content: center;}
 
-        /* Modern Reset Button Badge */
         .reset-badge { font-size: 11px; font-weight: 800; background: var(--danger-light); color: var(--danger); padding: 6px 12px; border-radius: 12px; letter-spacing: 0.5px;}
 
         .chart-toggles { display: flex; background: var(--bg); border-radius: 8px; padding: 4px; margin-bottom: 15px; }
@@ -65,13 +64,15 @@
         .date { font-size: 12px; color: var(--subtext); font-weight: 500; }
         .amount { font-weight: 800; font-size: 16px; text-align: right;}
 
-        .fab { position: fixed; bottom: 100px; right: 24px; width: 64px; height: 64px; background: var(--accent); color: white; border-radius: 32px; display: flex; justify-content: center; align-items: center; font-size: 32px; font-weight: 300; box-shadow: 0 8px 24px rgba(0,0,0,0.25); border: none; cursor: pointer; z-index: 100; transition: transform 0.3s, opacity 0.3s;}
-        .nav-island { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #e5e5ea; padding: 6px; border-radius: 30px; display: flex; gap: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 90; width: max-content; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);}
-        .nav-item { padding: 12px 14px; border-radius: 24px; color: var(--subtext); font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; }
-        .nav-item.active { background: var(--card); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .fab { position: fixed; bottom: 100px; right: 24px; width: 64px; height: 64px; background: var(--accent); color: white; border-radius: 32px; display: flex; justify-content: center; align-items: center; font-size: 32px; font-weight: 300; box-shadow: 0 8px 24px rgba(0,0,0,0.25); border: none; cursor: pointer; z-index: 100; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;}
+        
+        /* Premium Navigation Upgrade */
+        .nav-island { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(229, 229, 234, 0.85); padding: 6px; border-radius: 32px; display: flex; gap: 4px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); z-index: 90; width: max-content; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);}
+        .nav-item { padding: 12px 18px; border-radius: 26px; color: #8e8e93; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .nav-item.active { background: var(--card); color: var(--text); font-weight: 800; box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: scale(1.05); }
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 200; align-items: flex-end; justify-content: center; }
-        .modal-content { background: var(--bg); width: 100%; max-width: 100%; border-radius: 32px 32px 0 0; padding: 32px 24px 50px 24px; box-sizing: border-box; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 90vh; overflow-y: auto;}
+        .modal-content { background: var(--bg); width: 100%; max-width: 100%; border-radius: 32px 32px 0 0; padding: 32px 24px 50px 24px; box-sizing: border-box; transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); max-height: 90vh; overflow-y: auto;}
         .modal-overlay.active { display: flex; }
         .modal-overlay.active .modal-content { transform: translateY(0); }
         
@@ -82,9 +83,13 @@
         .btn-secondary { background: #e5e5ea; color: var(--text); width: 100%; padding: 18px; border-radius: 16px; font-size: 16px; font-weight: 700; border: none; cursor: pointer; margin-top: 10px; }
         .close-btn { position: absolute; top: 20px; right: 24px; font-weight: 700; font-size: 24px; color: var(--subtext); cursor: pointer; border: none; background: transparent; }
 
+        /* Smooth Tab Animations Update */
         .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .tab-content.active { display: block; animation: smoothEnter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        @keyframes smoothEnter {
+            0% { opacity: 0; transform: translateY(20px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
 
         .widget-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
         .widget-card { background: var(--card); border-radius: 24px; padding: 20px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
@@ -103,7 +108,7 @@
         .cc-label { font-size: 11px; color: #a1a1a6; font-weight: 600; text-transform: uppercase;}
         .cc-val { font-size: 18px; font-weight: 700; }
         .progress-bg { background: rgba(255,255,255,0.2); height: 6px; border-radius: 3px; width: 100%; overflow: hidden;}
-        .progress-fill { background: var(--success); height: 100%; border-radius: 3px; transition: width 0.3s; }
+        .progress-fill { background: var(--success); height: 100%; border-radius: 3px; transition: width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
         .progress-fill.warning { background: var(--warning); }
         .progress-fill.danger { background: var(--danger); }
         
@@ -114,13 +119,13 @@
         .loan-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; font-weight: 500; color: var(--subtext); }
         .loan-val { color: var(--text); font-weight: 700; }
 
-        /* Sleeker Bank Account Styling */
         .bank-card { background: var(--card); border-radius: 16px; padding: 16px 20px; margin-bottom: 12px; border: 1px solid #e5e5ea; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.02);}
         .bank-card-name { font-weight: 700; font-size: 15px;}
         .bank-card-bal { font-weight: 800; font-size: 16px;}
 
         .instrument-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 20px; }
-        .inst-btn { background: var(--card); border: 1px solid #e5e5ea; border-radius: 16px; padding: 16px 10px; font-size: 12px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.02);}
+        .inst-btn { background: var(--card); border: 1px solid #e5e5ea; border-radius: 16px; padding: 16px 10px; font-size: 12px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.02); transition: transform 0.2s;}
+        .inst-btn:active { transform: scale(0.95); }
         .inst-btn span { font-size: 28px; }
         .return-pill { padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: 800; display: inline-block; margin-top: 4px;}
         .return-pill.pos { background: var(--success-light); color: var(--success); }
@@ -132,7 +137,6 @@
         .recurring-checkbox { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; padding: 10px; background: var(--bg); border-radius: 12px; margin-bottom: 16px; }
         .recurring-checkbox input[type="checkbox"] { width: 20px; height: 20px; margin: 0; }
 
-        /* UI Pattern: Empty State Placeholder Card */
         .empty-state-card { text-align: center; padding: 35px 20px; border: 2px dashed #d1d1d6; border-radius: 20px; margin-bottom: 15px; }
         .empty-state-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.5; }
         .empty-state-title { font-size: 13px; color: var(--subtext); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -181,11 +185,9 @@
 </div>
 
 <div class="container tab-content" id="summary">
-    
     <div class="card-dark">
         <div class="label" style="color: #a1a1a6; margin-bottom: 5px;">True Net Worth</div>
         <div class="total-number" id="netWorthDisplay" style="color: #ffffff; font-size: 44px; margin-bottom: 25px;">₹0</div>
-        
         <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
             <div style="text-align: center; flex: 1;">
                 <div class="label" style="color: #a1a1a6; font-size: 10px;">Assets</div>
@@ -286,7 +288,6 @@
     </div>
     
     <div class="category-scroll" id="assetFilterContainer"></div>
-    
     <div id="savingsContainer"></div>
 </div>
 
@@ -523,7 +524,6 @@
         renderSavingsTab();
     }
 
-    // --- Automated Overheads Engine ---
     function processAutomatedOverheads() {
         const currentMonth = getCurrentMonthId();
         const today = new Date().getDate();
@@ -551,7 +551,6 @@
         if (changed) saveDb();
     }
 
-    // --- JSON Portability ---
     function exportJSONBackup() {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
         const a = document.createElement('a');
@@ -597,7 +596,6 @@
     function setChartView(view) { currentChartView = view; calculateStats(); }
     function closeModal(e, modalId, force = false) { if (force || e.target === document.getElementById(modalId)) document.getElementById(modalId).classList.remove('active'); }
 
-    // --- DERIVED REAL-TIME MULTI-ACCOUNT MATH ENGINE ---
     function getDerivedBalances() {
         let ccUsage = {}; let loanPaid = {};
         
@@ -1001,6 +999,7 @@
         const sipSection = document.getElementById('sipSection');
         const sipDisclaimer = document.getElementById('sipDisclaimer');
 
+        // Defaults
         npsBlock.style.display = 'none';
         fdBlock.style.display = 'none';
         currentInput.style.display = 'block';
@@ -1011,8 +1010,8 @@
             npsBlock.style.display = 'block';
         } else if (type === 'Fixed Deposit') {
             fdBlock.style.display = 'block';
-            currentInput.style.display = 'none'; 
-            sipSection.style.display = 'none'; 
+            currentInput.style.display = 'none'; // Auto-calculated
+            sipSection.style.display = 'none'; // FDs don't have monthly SIPs
             sipDisclaimer.style.display = 'none';
         }
     }
@@ -1112,6 +1111,7 @@
         saveDb(); closeModal(null, 'addSavingsModal', true); renderSavingsTab(); calculateStats();
     }
 
+    // --- FEATURE: Asset Liquidation ---
     function redeemSavings() {
         const sav = db.savings.find(s => s.id === editingSavingsId);
         if(!sav) return;
@@ -1203,8 +1203,6 @@
                     const matDate = new Date(start); matDate.setMonth(matDate.getMonth() + s.fdTenure);
                     fdBadge = `<div style="font-size: 11px; color: var(--subtext); margin-top: 4px; font-weight: 600;">Matures: ${matDate.toLocaleDateString('en-GB')}</div>`;
                 }
-                
-                // Add to globals only for the overall portfolio
                 
                 const absReturn = actualCurrent - s.invested; const pctReturn = ((absReturn / s.invested) * 100).toFixed(1);
                 const isPositive = absReturn >= 0; const pillClass = isPositive ? 'pos' : 'neg'; const sign = isPositive ? '+' : '';
@@ -1325,20 +1323,19 @@
             let cleanCat = '-';
             if (t.category && t.type === 'expense') { const parts = t.category.split(' '); cleanCat = parts.length > 1 ? parts.slice(1).join(' ') : t.category; }
             
-            let payStr = 'Cash/Bank';
-            if (t.type === 'expense' && t.paymentMethod && t.paymentMethod.startsWith('cc_')) {
-                const cardId = Number(t.paymentMethod.split('_')[1]);
-                const card = db.creditCards.find(c => c.id === cardId);
-                if (card) payStr = card.name;
-            } else if (t.type === 'repayment' && t.repaymentTarget) {
+            let payStr = 'Cash Wallet';
+            if (t.paymentMethod && t.paymentMethod.startsWith('bank_')) {
+                const b = db.bankAccounts.find(x => x.id == t.paymentMethod.split('_')[1]); if (b) payStr = b.name;
+            } else if (t.type === 'expense' && t.paymentMethod && t.paymentMethod.startsWith('cc_')) {
+                const card = db.creditCards.find(c => c.id === Number(t.paymentMethod.split('_')[1])); if (card) payStr = card.name;
+            } 
+            
+            if (t.type === 'repayment' && t.repaymentTarget) {
                 const parts = t.repaymentTarget.split('_');
-                if (parts[0] === 'cc') {
-                    const c = db.creditCards.find(x => x.id == parts[1]);
-                    if (c) payStr = 'Repayment: ' + c.name;
-                } else if (parts[0] === 'loan') {
-                    const l = db.loans.find(x => x.id == parts[1]);
-                    if (l) payStr = 'Repayment: ' + l.name;
-                }
+                let target = '';
+                if (parts[0] === 'cc') { const c = db.creditCards.find(x => x.id == parts[1]); if (c) target = c.name; } 
+                else if (parts[0] === 'loan') { const l = db.loans.find(x => x.id == parts[1]); if (l) target = l.name; }
+                payStr = `${payStr} -> ${target}`;
             }
 
             let color = '#000';
@@ -1439,20 +1436,16 @@
         monthTx.forEach(t => {
             if (t.type === 'income') {
                 monthIncome += t.amount;
+                if (activeCategoryFilter === 'Income' || activeCategoryFilter === 'All Expenses') filteredExpenses.push(t);
+            } else if (t.type === 'repayment') {
+                if (activeCategoryFilter === 'All Expenses' || activeCategoryFilter === 'Repayments') filteredExpenses.push(t);
             } else if (t.type === 'expense') {
                 monthSpent += t.amount;
                 const catKey = t.category || "📦 Uncategorized";
                 usedCategories.add(catKey);
                 categorySpendMap[catKey] = (categorySpendMap[catKey] || 0) + t.amount;
+                if (activeCategoryFilter === 'All Expenses' || activeCategoryFilter === catKey) filteredExpenses.push(t);
             }
-            
-            // Standard feed filtering
-            if (activeCategoryFilter === 'All Expenses' || activeCategoryFilter === t.category) {
-                if (t.type === 'expense') filteredExpenses.push(t);
-            }
-            if (activeCategoryFilter === 'Income' && t.type === 'income') filteredExpenses.push(t);
-            if (activeCategoryFilter === 'Repayments' && t.type === 'repayment') filteredExpenses.push(t);
-            if (activeCategoryFilter === 'All Expenses' && (t.type === 'income' || t.type === 'repayment')) filteredExpenses.push(t);
         });
 
         const budgetContainer = document.getElementById('categoryBudgetsContainer');
