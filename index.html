@@ -318,6 +318,8 @@
         <p style="color: var(--subtext); font-size: 13px; margin-top: 0;">Choose the asset type to track.</p>
         
         <div class="instrument-grid">
+            <button class="inst-btn" onclick="openAddSavingsModal('Fixed Deposit', '🔒')"><span>🔒</span> FD</button>
+            <button class="inst-btn" onclick="openAddSavingsModal('Recurring Deposit', '🔁')"><span>🔁</span> RD</button>
             <button class="inst-btn" onclick="openAddSavingsModal('Mutual Fund', '📊')"><span>📊</span> Mutual Fund</button>
             <button class="inst-btn" onclick="openAddSavingsModal('Stocks', '📈')"><span>📈</span> Stocks</button>
             <button class="inst-btn" onclick="openAddSavingsModal('EPF', '🏛️')"><span>🏛️</span> EPF</button>
@@ -350,8 +352,8 @@
         <input type="number" id="savRate" placeholder="Interest Rate % (Optional)">
         
         <div style="display: flex; gap: 10px; margin-top: 16px;">
-            <input type="number" id="savSipAmount" placeholder="Monthly SIP ₹" style="margin-bottom: 0; flex: 1;">
-            <input type="number" id="savSipDate" placeholder="SIP Date (1-31)" min="1" max="31" style="margin-bottom: 0; flex: 1;">
+            <input type="number" id="savSipAmount" placeholder="Monthly SIP/Auto-Debit ₹" style="margin-bottom: 0; flex: 1;">
+            <input type="number" id="savSipDate" placeholder="Date (1-31)" min="1" max="31" style="margin-bottom: 0; flex: 1;">
         </div>
         <p style="font-size: 11px; color: var(--subtext); margin-top: 8px; margin-bottom: 16px; font-weight: 500;">*Leave blank if no automated monthly investment.</p>
         
@@ -445,7 +447,6 @@
 
     // --- Core Tracker Logic ---
     function populateDropdowns() {
-        // Compute active usage to display accurate due amounts in dropdown
         let ccUsage = {};
         let loanPaid = {};
         db.transactions.forEach(t => {
@@ -583,7 +584,6 @@
             
             if (editingId) {
                 const index = db.transactions.findIndex(t => t.id === editingId);
-                // Completely decoupled from manual state mutation. Just update the raw ledger.
                 db.transactions[index].amount = amount; 
                 db.transactions[index].title = title; 
                 db.transactions[index].category = category;
@@ -824,11 +824,11 @@
         if (!name || !invested || !current) return alert("Name, Invested, and Current Value are required.");
         
         if ((sipAmount && !sipDate) || (!sipAmount && sipDate)) {
-            return alert("Automated Tracking Error: You must provide BOTH the Monthly SIP Amount and the SIP Date, or leave both blank.");
+            return alert("Automated Tracking Error: You must provide BOTH the Monthly SIP/Auto-Debit Amount and the Date, or leave both blank.");
         }
 
         if (sipDate !== null && (sipDate < 1 || sipDate > 31)) {
-            return alert("SIP Date must be a valid calendar day between 1 and 31.");
+            return alert("Date must be a valid calendar day between 1 and 31.");
         }
 
         let allocations = null;
