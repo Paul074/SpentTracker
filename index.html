@@ -66,8 +66,8 @@
         .nav-item.active { background: var(--card); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 
         /* Modals */
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 200; align-items: flex-end; }
-        .modal-content { background: var(--bg); width: 100%; border-radius: 32px 32px 0 0; padding: 32px 24px 50px 24px; box-sizing: border-box; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 90vh; overflow-y: auto;}
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 200; align-items: flex-end; justify-content: center; }
+        .modal-content { background: var(--bg); width: 100%; max-width: 100%; border-radius: 32px 32px 0 0; padding: 32px 24px 50px 24px; box-sizing: border-box; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); max-height: 90vh; overflow-y: auto;}
         .modal-overlay.active { display: flex; }
         .modal-overlay.active .modal-content { transform: translateY(0); }
         
@@ -84,6 +84,14 @@
         .widget-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
         .widget-card { background: var(--card); border-radius: 24px; padding: 20px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
         .cat-list-item { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 12px 16px; border-radius: 12px; margin-bottom: 8px; font-weight: 600;}
+
+        /* RESPONSIVE DESIGN FOR IPAD / DESKTOP */
+        @media (min-width: 600px) {
+            html { background-color: #d1d1d6; }
+            body { max-width: 400px; margin: 0 auto; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.1); position: relative; }
+            .fab { right: calc(50% - 200px + 24px); }
+            .modal-content { max-width: 400px; }
+        }
     </style>
 </head>
 <body>
@@ -126,7 +134,7 @@
     </div>
 
     <div class="card" style="text-align: center; padding: 24px;">
-        <div class="label">Spent This Month</div>
+        <div class="label" id="labelSpendMonth">Spent This Month</div>
         <div class="total-number" id="spendMonthWidget" style="font-size: 32px; margin-bottom: 0;">₹0</div>
     </div>
 
@@ -143,11 +151,11 @@
 
     <div class="widget-grid">
         <div class="widget-card">
-            <div class="label" style="font-size: 11px;">Month Income</div>
+            <div class="label" id="labelIncomeMonth" style="font-size: 11px;">Month Income</div>
             <div class="total-number" id="incomeMonthWidget" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
         <div class="widget-card">
-            <div class="label" style="font-size: 11px;">Saved This Month</div>
+            <div class="label" id="labelSavedMonth" style="font-size: 11px;">Saved This Month</div>
             <div class="total-number" id="savedMonth" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
     </div>
@@ -205,7 +213,6 @@
 <script>
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
     
-    // Default Category List for reset
     const defaultCategories = ["🍔 Food", "🚌 Transport", "🛍️ Shopping", "💡 Bills", "💊 Health", "📦 Other"];
     
     let db = JSON.parse(localStorage.getItem('kite_db')) || { transactions: [], target: 0 };
@@ -359,7 +366,6 @@
         calculateStats();
     }
 
-    // Dangerous Reset remains but moved visually and symbol-only
     function resetDatabase() {
         if(!confirm("⚠️ DANGER: This will permanently delete ALL transaction history, settings, and targets. You cannot undo this. Are you absolutely sure?")) return;
         
@@ -434,19 +440,25 @@
         const weekStartMs = startOfWeek.getTime();
         const currentYear = now.getFullYear();
 
+        // Dynamically fetch current month name
+        const currentMonthName = now.toLocaleString('en-US', { month: 'long' });
+
+        // Update Dynamic DOM Labels
+        document.getElementById('labelSpendMonth').innerText = `Spent in ${currentMonthName}`;
+        document.getElementById('labelIncomeMonth').innerText = `${currentMonthName} Income`;
+        document.getElementById('labelSavedMonth').innerText = `Saved in ${currentMonthName}`;
+
         let monthIncome = 0, monthSpent = 0, todaySpent = 0, weekSpent = 0;
         let usedCategories = new Set();
         let filteredExpenses = [];
         const allExp = db.transactions.filter(t => t.type === 'expense');
 
-        // Global Analytics
         allExp.forEach(t => {
             const txTime = new Date(t.timestamp).getTime();
             if (txTime >= weekStartMs) weekSpent += t.amount;
             if (txTime >= todayStart) todaySpent += t.amount;
         });
 
-        // Current Month Analytics
         const monthTx = db.transactions.filter(t => t.month === currentMonthId).sort((a,b) => b.id - a.id);
         monthTx.forEach(t => {
             if (t.type === 'income') {
@@ -583,8 +595,6 @@
         // Widgets Update
         document.getElementById('spendToday').innerText = `₹${todaySpent.toLocaleString('en-IN')}`;
         document.getElementById('spendWeek').innerText = `₹${weekSpent.toLocaleString('en-IN')}`;
-        
-        // NEW widget population
         document.getElementById('spendMonthWidget').innerText = `₹${monthSpent.toLocaleString('en-IN')}`;
         document.getElementById('incomeMonthWidget').innerText = `₹${monthIncome.toLocaleString('en-IN')}`;
         
