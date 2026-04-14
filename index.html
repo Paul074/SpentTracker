@@ -81,7 +81,7 @@
         .tab-content.active { display: block; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .widget-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .widget-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
         .widget-card { background: var(--card); border-radius: 24px; padding: 20px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
         .cat-list-item { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 12px 16px; border-radius: 12px; margin-bottom: 8px; font-weight: 600;}
 
@@ -144,8 +144,8 @@
             <div class="total-number" id="spendToday" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
         <div class="widget-card">
-            <div class="label" style="font-size: 11px;">Daily Limit</div>
-            <div class="total-number" id="dailyLimit" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
+            <div class="label" id="safeDailyLimitLabel" style="font-size: 11px; color: var(--success);">Safe Daily Limit</div>
+            <div class="total-number" id="safeDailyLimit" style="font-size: 24px; margin: 5px 0 0 0; color: var(--success);">₹0</div>
         </div>
     </div>
 
@@ -155,14 +155,20 @@
             <div class="total-number" id="spendWeek" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
         <div class="widget-card">
-            <div class="label" id="labelSavedMonth" style="font-size: 11px;">Saved This Month</div>
-            <div class="total-number" id="savedMonth" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
+            <div class="label" style="font-size: 11px;">Avg Daily Spend</div>
+            <div class="total-number" id="avgDailySpend" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
     </div>
 
-    <div class="card" style="text-align: center; padding: 24px;">
-        <div class="label" id="labelIncomeMonth">Month Income</div>
-        <div class="total-number" id="incomeMonthWidget" style="font-size: 32px; margin-bottom: 0;">₹0</div>
+    <div class="widget-grid">
+        <div class="widget-card">
+            <div class="label" id="labelIncomeMonth" style="font-size: 11px;">Month Income</div>
+            <div class="total-number" id="incomeMonthWidget" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
+        </div>
+        <div class="widget-card">
+            <div class="label" id="labelSavedMonth" style="font-size: 11px;">Saved This Month</div>
+            <div class="total-number" id="savedMonth" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
+        </div>
     </div>
 
     <div class="card" style="text-align: center; padding: 30px;">
@@ -503,7 +509,9 @@
         const currentMonthId = getCurrentMonthId();
         const now = new Date();
         const currentYear = now.getFullYear();
+        const daysPassed = now.getDate();
         const daysInMonth = new Date(currentYear, now.getMonth() + 1, 0).getDate();
+        const daysRemaining = daysInMonth - daysPassed + 1;
 
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
         const startOfWeek = new Date(todayStart);
@@ -668,23 +676,36 @@
         document.querySelectorAll('.chart-toggle').forEach(el => el.classList.remove('active'));
         document.getElementById('toggle-' + currentChartView).classList.add('active');
 
-        // STATIC DAILY LIMIT CALCULATION
-        const staticDailyLimit = targetAmount > 0 ? Math.round(targetAmount / daysInMonth) : 0;
-
         // Widgets Update
-        document.getElementById('spendToday').innerText = `₹${todaySpent.toLocaleString('en-IN')}`;
-        document.getElementById('dailyLimit').innerText = `₹${staticDailyLimit.toLocaleString('en-IN')}`;
-        
+        const rem = targetAmount - monthSpent;
+        const avgDaily = monthSpent / daysPassed;
+        const safeDaily = rem > 0 ? Math.floor(rem / daysRemaining) : 0;
+
+        // SPENT TODAY DYNAMIC COLOR LOGIC
+        const spendTodayEl = document.getElementById('spendToday');
+        spendTodayEl.innerText = `₹${todaySpent.toLocaleString('en-IN')}`;
+        if (targetAmount > 0 && todaySpent > safeDaily) {
+            spendTodayEl.style.color = "var(--danger)";
+        } else {
+            spendTodayEl.style.color = "var(--text)";
+        }
+
         document.getElementById('spendWeek').innerText = `₹${weekSpent.toLocaleString('en-IN')}`;
         document.getElementById('spendMonthWidget').innerText = `₹${monthSpent.toLocaleString('en-IN')}`;
         document.getElementById('incomeMonthWidget').innerText = `₹${monthIncome.toLocaleString('en-IN')}`;
         
+        document.getElementById('avgDailySpend').innerText = `₹${Math.round(avgDaily).toLocaleString('en-IN')}`;
+        
+        const safeDailyEl = document.getElementById('safeDailyLimit');
+        safeDailyEl.innerText = `₹${safeDaily.toLocaleString('en-IN')}`;
+        safeDailyEl.style.color = rem > 0 ? "var(--success)" : "var(--danger)";
+        document.getElementById('safeDailyLimitLabel').style.color = rem > 0 ? "var(--success)" : "var(--danger)";
+
         const monthSaved = monthIncome - monthSpent;
         const savedMonthEl = document.getElementById('savedMonth');
         savedMonthEl.innerText = `₹${monthSaved.toLocaleString('en-IN')}`;
         savedMonthEl.style.color = monthSaved >= 0 ? "var(--success)" : "var(--danger)";
 
-        const rem = targetAmount - monthSpent;
         const mainDisplay = document.getElementById('targetDisplay');
         const subDisplay = document.getElementById('targetStatus');
         const cardLabel = document.getElementById('targetCardLabel');
