@@ -61,7 +61,7 @@
         .amount { font-weight: 800; font-size: 16px; text-align: right;}
 
         /* Floating Nav & FAB */
-        .fab { position: fixed; bottom: 90px; right: 24px; width: 64px; height: 64px; background: var(--accent); color: white; border-radius: 32px; display: flex; justify-content: center; align-items: center; font-size: 32px; font-weight: 300; box-shadow: 0 8px 24px rgba(0,0,0,0.25); border: none; cursor: pointer; z-index: 100; }
+        .fab { position: fixed; bottom: 90px; right: 24px; width: 64px; height: 64px; background: var(--accent); color: white; border-radius: 32px; display: flex; justify-content: center; align-items: center; font-size: 32px; font-weight: 300; box-shadow: 0 8px 24px rgba(0,0,0,0.25); border: none; cursor: pointer; z-index: 100; transition: transform 0.3s, opacity 0.3s;}
         .nav-island { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #e5e5ea; padding: 6px; border-radius: 30px; display: flex; gap: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); z-index: 90; width: max-content;}
         .nav-item { padding: 12px 14px; border-radius: 24px; color: var(--subtext); font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; }
         .nav-item.active { background: var(--card); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
@@ -233,7 +233,7 @@
     <div id="savingsContainer"></div>
 </div>
 
-<button class="fab" onclick="openInputModal()">+</button>
+<button class="fab" id="mainFab" onclick="openInputModal()">+</button>
 
 <div class="nav-island">
     <div class="nav-item active" onclick="switchTab('home', this)">Home</div>
@@ -319,6 +319,17 @@
         <h2 id="savingsModalTitle" style="margin-bottom: 24px;">Add Savings</h2>
         
         <input type="text" id="savName" placeholder="Instrument Name (e.g. Nifty 50)">
+        
+        <div id="npsAllocationSection" style="display: none; background: var(--bg); padding: 15px; border-radius: 16px; margin-bottom: 16px;">
+            <div class="label" style="margin-bottom: 10px; font-size: 11px;">NPS Asset Allocation (%)</div>
+            <div style="display: flex; gap: 10px;">
+                <input type="number" id="npsE" placeholder="Equity" style="margin: 0; padding: 12px; font-size: 14px;">
+                <input type="number" id="npsC" placeholder="Corp" style="margin: 0; padding: 12px; font-size: 14px;">
+                <input type="number" id="npsG" placeholder="Govt" style="margin: 0; padding: 12px; font-size: 14px;">
+            </div>
+            <div style="color: var(--subtext); font-size: 11px; margin-top: 8px; font-weight: 600;">Values must exactly equal 100%</div>
+        </div>
+
         <input type="number" id="savInvested" placeholder="Total Principal Invested ₹">
         <input type="number" id="savCurrent" placeholder="Current Market Value ₹">
         <input type="number" id="savRate" placeholder="Interest Rate % (Optional)">
@@ -362,6 +373,15 @@
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
         el.classList.add('active');
+        
+        // Dynamic FAB visibility
+        const fab = document.getElementById('mainFab');
+        if (tabId === 'home' || tabId === 'summary') {
+            fab.style.display = 'flex';
+        } else {
+            fab.style.display = 'none';
+        }
+
         if(tabId === 'credit') renderCreditTab();
         if(tabId === 'savings') renderSavingsTab();
     }
@@ -539,7 +559,7 @@
         }
     }
 
-    // --- NEW: Savings Tab ---
+    // --- NEW: Savings Tab & NPS Allocation ---
     function openSelectInstrumentModal() {
         document.getElementById('selectInstrumentModal').classList.add('active');
     }
@@ -555,8 +575,19 @@
         document.getElementById('savInvested').value = '';
         document.getElementById('savCurrent').value = '';
         document.getElementById('savRate').value = '';
-        document.getElementById('deleteSavBtn').style.display = 'none';
         
+        // NPS Allocation Toggle
+        const npsBlock = document.getElementById('npsAllocationSection');
+        if (type === 'NPS') {
+            npsBlock.style.display = 'block';
+            document.getElementById('npsE').value = '';
+            document.getElementById('npsC').value = '';
+            document.getElementById('npsG').value = '';
+        } else {
+            npsBlock.style.display = 'none';
+        }
+
+        document.getElementById('deleteSavBtn').style.display = 'none';
         document.getElementById('addSavingsModal').classList.add('active');
     }
 
@@ -574,6 +605,17 @@
         document.getElementById('savCurrent').value = sav.current;
         document.getElementById('savRate').value = sav.rate || '';
         
+        // NPS Allocation Toggle
+        const npsBlock = document.getElementById('npsAllocationSection');
+        if (sav.type === 'NPS') {
+            npsBlock.style.display = 'block';
+            document.getElementById('npsE').value = sav.allocations ? sav.allocations.e : '';
+            document.getElementById('npsC').value = sav.allocations ? sav.allocations.c : '';
+            document.getElementById('npsG').value = sav.allocations ? sav.allocations.g : '';
+        } else {
+            npsBlock.style.display = 'none';
+        }
+
         document.getElementById('deleteSavBtn').style.display = 'block';
         document.getElementById('addSavingsModal').classList.add('active');
     }
@@ -586,11 +628,23 @@
 
         if (!name || !invested || !current) return alert("Name, Invested, and Current Value are required.");
 
+        let allocations = null;
+        if (selectedSavingsType === 'NPS') {
+            const e = Number(document.getElementById('npsE').value);
+            const c = Number(document.getElementById('npsC').value);
+            const g = Number(document.getElementById('npsG').value);
+            
+            if (e + c + g !== 100) {
+                return alert("NPS Allocations must total exactly 100%. Check your E, C, and G values.");
+            }
+            allocations = { e, c, g };
+        }
+
         if (editingSavingsId) {
             const index = db.savings.findIndex(s => s.id === editingSavingsId);
-            db.savings[index] = { id: editingSavingsId, type: selectedSavingsType, icon: selectedSavingsIcon, name, invested, current, rate };
+            db.savings[index] = { id: editingSavingsId, type: selectedSavingsType, icon: selectedSavingsIcon, name, invested, current, rate, allocations };
         } else {
-            db.savings.push({ id: Date.now(), type: selectedSavingsType, icon: selectedSavingsIcon, name, invested, current, rate });
+            db.savings.push({ id: Date.now(), type: selectedSavingsType, icon: selectedSavingsIcon, name, invested, current, rate, allocations });
         }
         
         saveDb(); closeModal(null, 'addSavingsModal', true); renderSavingsTab();
@@ -605,7 +659,6 @@
     function renderSavingsTab() {
         let totalInvested = 0;
         let totalCurrent = 0;
-        
         const container = document.getElementById('savingsContainer');
         
         if (db.savings.length === 0) {
@@ -623,6 +676,11 @@
                 const sign = isPositive ? '+' : '';
                 
                 const rateText = s.rate ? `<span style="font-size: 11px; color: var(--subtext); margin-left: 5px;">(${s.rate}% APY)</span>` : '';
+                
+                let npsBadge = '';
+                if (s.type === 'NPS' && s.allocations) {
+                    npsBadge = `<div style="font-size: 11px; color: var(--subtext); margin-top: 4px; font-weight: 600;">E: ${s.allocations.e}% • C: ${s.allocations.c}% • G: ${s.allocations.g}%</div>`;
+                }
 
                 return `
                 <div class="expense-item" onclick="editSavings(${s.id})">
@@ -631,6 +689,7 @@
                         <div>
                             <div class="title" style="font-size: 15px;">${s.name} ${rateText}</div>
                             <div class="date">Inv: ₹${s.invested.toLocaleString('en-IN')}</div>
+                            ${npsBadge}
                         </div>
                     </div>
                     <div style="text-align: right;">
