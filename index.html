@@ -100,6 +100,7 @@
     <div class="header-flex">
         <h2 style="margin: 0; font-size: 24px; letter-spacing: -0.5px;">Dashboard</h2>
         <div class="header-actions">
+            <button class="icon-btn" onclick="openStrategy()" style="font-size: 26px;">💡</button>
             <button class="icon-btn" onclick="resetDatabase()" style="color: var(--danger);">🗑️</button>
             <button class="icon-btn" onclick="openSettings()">⚙️</button>
         </div>
@@ -221,6 +222,29 @@
     </div>
 </div>
 
+<div class="modal-overlay" id="strategyModal" onclick="closeModal(event, 'strategyModal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <button class="close-btn" onclick="closeModal(null, 'strategyModal', true)">×</button>
+        <h2 style="margin-bottom: 24px; letter-spacing: -0.5px;">Wealth Strategy</h2>
+
+        <div class="card" style="background: var(--bg); box-shadow: none; border: 1px solid #e5e5ea; margin-bottom: 15px; padding: 20px;">
+            <div class="label" style="margin-bottom: 12px; color: var(--text);">Dynamic SIP Projection</div>
+            <div id="dynamicStrategy"></div>
+        </div>
+
+        <div class="card" style="background: var(--bg); box-shadow: none; border: 1px solid #e5e5ea; margin-bottom: 15px; padding: 20px;">
+            <div class="label" style="margin-bottom: 8px; color: var(--text);">The 50/30/20 Rule</div>
+            <div style="font-size: 15px; color: var(--text); font-weight: 700; margin-bottom: 6px;">Needs 50% | Wants 30% | Invest 20%</div>
+            <div style="font-size: 14px; color: var(--subtext); line-height: 1.4;">Never let your "Wants" eat into your "Invest" capital. Transfer your investment funds (SIPs/ETFs) out of your primary account on payday. Treat it as a non-negotiable tax on yourself.</div>
+        </div>
+
+        <div class="card" style="background: var(--bg); box-shadow: none; border: 1px solid #e5e5ea; margin-bottom: 15px; padding: 20px;">
+            <div class="label" style="margin-bottom: 8px; color: var(--text);">The 24-Hour Delay</div>
+            <div style="font-size: 14px; color: var(--subtext); line-height: 1.4;">Before making any non-essential purchase, force yourself to wait exactly 24 hours. The initial dopamine hit of spending will fade, and 80% of the time, the money stays yours.</div>
+        </div>
+    </div>
+</div>
+
 <script>
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
     
@@ -288,6 +312,40 @@
     function openSettings() {
         renderCategorySettings();
         document.getElementById('settingsModal').classList.add('active');
+    }
+
+    function openStrategy() {
+        const currentMonthId = getCurrentMonthId();
+        let monthSpent = 0;
+        
+        db.transactions.forEach(t => {
+            if (t.month === currentMonthId && t.type === 'expense') monthSpent += t.amount;
+        });
+
+        const target = db.target || 0;
+        const rem = target - monthSpent;
+        
+        let dynamicHtml = '';
+        if (target === 0) {
+            dynamicHtml = `<div style="color: var(--text); font-weight: 700; margin-bottom: 6px; font-size: 15px;">Set a Target to Unlock</div>
+                           <div style="font-size: 14px; color: var(--subtext); line-height: 1.4;">You must set a Monthly Target to see your wealth compounding projections.</div>`;
+        } else if (rem < 0) {
+            dynamicHtml = `<div style="color: var(--danger); font-weight: 700; margin-bottom: 6px; font-size: 15px;">⚠️ Deficit Warning: ₹${Math.abs(rem).toLocaleString('en-IN')}</div>
+                           <div style="font-size: 14px; color: var(--subtext); line-height: 1.4;">You have broken your budget. Every rupee borrowed today steals compound interest from your future self. Pause all non-essential spending immediately.</div>`;
+        } else {
+            // Compound Interest Formula (Future Value of a Series)
+            // Monthly Contribution = Remaining Budget. Assuming 12% annual return (1% monthly) over 10 years (120 months)
+            const monthlySIP = rem;
+            const months = 120;
+            const rate = 0.12 / 12;
+            const futureValue = monthlySIP * ((Math.pow(1 + rate, months) - 1) / rate) * (1 + rate);
+            
+            dynamicHtml = `<div style="color: var(--success); font-weight: 700; margin-bottom: 6px; font-size: 15px;">🌱 On Track: ₹${rem.toLocaleString('en-IN')}</div>
+                           <div style="font-size: 14px; color: var(--subtext); line-height: 1.4;">If you secure this exact remaining amount every month and invest it via SIP into an Equity/Index fund (12% avg return), in exactly 10 years it will compound to <strong>₹${Math.round(futureValue).toLocaleString('en-IN')}</strong>.</div>`;
+        }
+
+        document.getElementById('dynamicStrategy').innerHTML = dynamicHtml;
+        document.getElementById('strategyModal').classList.add('active');
     }
 
     function closeModal(e, modalId, force = false) {
@@ -681,7 +739,6 @@
         const avgDaily = monthSpent / daysPassed;
         const safeDaily = rem > 0 ? Math.floor(rem / daysRemaining) : 0;
 
-        // SPENT TODAY DYNAMIC COLOR LOGIC
         const spendTodayEl = document.getElementById('spendToday');
         spendTodayEl.innerText = `₹${todaySpent.toLocaleString('en-IN')}`;
         if (targetAmount > 0 && todaySpent > safeDaily) {
