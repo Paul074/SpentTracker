@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Spent Tracker</title>
+    <title>Kite Tracker</title>
     <link rel="manifest" href="manifest.json">
     <style>
         :root {
@@ -144,25 +144,20 @@
             <div class="total-number" id="spendToday" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
         <div class="widget-card">
-            <div class="label" style="font-size: 11px;">Daily Limit</div>
-            <div class="total-number" id="dailyLimitWidget" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
+            <div class="label" style="font-size: 11px;">Spent This Week</div>
+            <div class="total-number" id="spendWeek" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
     </div>
 
     <div class="widget-grid">
         <div class="widget-card">
-            <div class="label" style="font-size: 11px;">Spent This Week</div>
-            <div class="total-number" id="spendWeek" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
-        </div>
-        <div class="widget-card">
             <div class="label" id="labelIncomeMonth" style="font-size: 11px;">Month Income</div>
             <div class="total-number" id="incomeMonthWidget" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
-    </div>
-    
-    <div class="card" style="text-align: center; padding: 24px;">
-        <div class="label" id="labelSavedMonth">Saved This Month</div>
-        <div class="total-number" id="savedMonth" style="font-size: 32px; margin-bottom: 0;">₹0</div>
+        <div class="widget-card">
+            <div class="label" id="labelSavedMonth" style="font-size: 11px;">Saved This Month</div>
+            <div class="total-number" id="savedMonth" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
+        </div>
     </div>
 
     <div class="card" style="text-align: center; padding: 30px;">
@@ -220,7 +215,6 @@
     
     const defaultCategories = ["🍔 Food", "🚌 Transport", "🛍️ Shopping", "💡 Bills", "💊 Health", "📦 Other"];
     
-    // Kept internal key as 'kite_db' to prevent data loss
     let db = JSON.parse(localStorage.getItem('kite_db')) || { transactions: [], target: 0 };
     if (!db.categories) db.categories = [...defaultCategories];
     
@@ -389,84 +383,102 @@
         alert("Database reset successful.");
     }
 
+    // UPGRADED PROFESSIONAL EXCEL EXPORT
     function exportExcel() {
         const currentMonthId = getCurrentMonthId();
+        const currentMonthName = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
         
-        // Generate formatted "2026-April" string
-        const [yyyy, mm] = currentMonthId.split('-');
-        const monthName = new Date(yyyy, parseInt(mm) - 1).toLocaleString('en-US', { month: 'long' });
-        const reportMonthStr = `${yyyy}-${monthName}`;
+        let monthIncome = 0;
+        let monthSpent = 0;
+        let catTotals = {};
+        
+        // Filter strictly to current month for the report
+        let reportTx = db.transactions.filter(t => t.month === currentMonthId).sort((a,b) => b.id - a.id);
 
-        const monthTx = db.transactions.filter(t => t.month === currentMonthId).sort((a,b) => b.id - a.id);
-        
-        let totalInc = 0, totalExp = 0;
-        monthTx.forEach(t => {
-            if (t.type === 'income') totalInc += t.amount;
-            else totalExp += t.amount;
+        reportTx.forEach(t => {
+            if (t.type === 'income') monthIncome += t.amount;
+            if (t.type === 'expense') {
+                monthSpent += t.amount;
+                const cat = t.category || 'Uncategorized';
+                catTotals[cat] = (catTotals[cat] || 0) + t.amount;
+            }
         });
+
+        let netSavings = monthIncome - monthSpent;
 
         let tableHTML = `
             <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-            <head>
-                <meta charset="UTF-8">
-                <style>
-                    table { border-collapse: collapse; font-family: -apple-system, sans-serif; }
-                    .header { background-color: #000000; color: #ffffff; font-weight: bold; padding: 12px; text-align: left; border: 1px solid #d1d1d6; }
-                    .cell { padding: 10px; border: 1px solid #d1d1d6; }
-                    .inc { color: #15803d; font-weight: bold; }
-                    .exp { color: #b91c1c; font-weight: bold; }
-                    .title-row { font-size: 20px; font-weight: bold; background-color: #f2f2f6; padding: 15px; text-align: center; border: 1px solid #d1d1d6;}
-                    .summary-row { font-weight: bold; background-color: #e5e5ea; padding: 10px; border: 1px solid #d1d1d6;}
-                </style>
-            </head>
-            <body>
-                <table>
-                    <tr>
-                        <td colspan="5" class="title-row">Spent Tracker Financial Report - ${reportMonthStr}</td>
+            <head><meta charset="UTF-8"></head>
+            <body style="font-family: -apple-system, Arial, sans-serif;">
+                
+                <h2 style="color: #000000; text-align: center; margin-bottom: 20px;">Kite Tracker - Financial Report (${currentMonthName})</h2>
+                
+                <table border="1" style="border-collapse: collapse; width: 100%; margin-bottom: 30px;">
+                    <tr style="background-color: #191919; color: #ffffff;">
+                        <th style="padding: 12px; font-size: 14px;">Total Income</th>
+                        <th style="padding: 12px; font-size: 14px;">Total Expenses</th>
+                        <th style="padding: 12px; font-size: 14px;">Net Savings</th>
                     </tr>
-                    <tr>
-                        <td colspan="2" class="summary-row">Total Income: ₹${totalInc.toLocaleString('en-IN')}</td>
-                        <td colspan="3" class="summary-row">Total Expenses: ₹${totalExp.toLocaleString('en-IN')}</td>
+                    <tr style="text-align: center; font-weight: bold; font-size: 16px;">
+                        <td style="padding: 15px; color: #34c759;">₹${monthIncome.toLocaleString('en-IN')}</td>
+                        <td style="padding: 15px; color: #ff3b30;">₹${monthSpent.toLocaleString('en-IN')}</td>
+                        <td style="padding: 15px; color: ${netSavings >= 0 ? '#34c759' : '#ff3b30'};">₹${netSavings.toLocaleString('en-IN')}</td>
                     </tr>
-                    <tr><td colspan="5"></td></tr>
-                    <tr>
-                        <th class="header">Date</th>
-                        <th class="header">Type</th>
-                        <th class="header">Category</th>
-                        <th class="header">Title / Note</th>
-                        <th class="header">Amount (INR)</th>
+                </table>
+
+                <h3 style="color: #333333; margin-bottom: 10px;">Expense Breakdown by Category</h3>
+                <table border="1" style="border-collapse: collapse; width: 100%; margin-bottom: 30px;">
+                    <tr style="background-color: #f2f2f6;">
+                        <th style="padding: 10px; text-align: left;">Category</th>
+                        <th style="padding: 10px; text-align: left;">Amount Spent</th>
                     </tr>
         `;
+
+        for (const [cat, total] of Object.entries(catTotals)) {
+            tableHTML += `<tr><td style="padding: 10px;">${cat}</td><td style="padding: 10px; color: #ff3b30; font-weight: bold;">₹${total.toLocaleString('en-IN')}</td></tr>`;
+        }
+
+        tableHTML += `
+                </table>
+
+                <h3 style="color: #333333; margin-bottom: 10px;">Full Transaction Ledger</h3>
+                <table border="1" style="border-collapse: collapse; width: 100%;">
+                    <thead>
+                        <tr style="background-color: #191919; color: #ffffff; text-align: left;">
+                            <th style="padding: 12px; border: 1px solid #d1d1d6;">Date</th>
+                            <th style="padding: 12px; border: 1px solid #d1d1d6;">Type</th>
+                            <th style="padding: 12px; border: 1px solid #d1d1d6;">Category</th>
+                            <th style="padding: 12px; border: 1px solid #d1d1d6;">Title / Note</th>
+                            <th style="padding: 12px; border: 1px solid #d1d1d6;">Amount (INR)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
         
-        monthTx.forEach(t => {
-            // Generate formatted "14-April" string
-            const dObj = new Date(t.timestamp);
-            const dayStr = dObj.getDate().toString().padStart(2, '0');
-            const mStr = dObj.toLocaleString('en-US', { month: 'long' });
-            const date = `${dayStr}-${mStr}`;
-            
+        reportTx.forEach((t, index) => {
+            const date = new Date(t.timestamp).toLocaleDateString('en-GB');
             const cat = t.category || '-';
-            const isInc = t.type === 'income';
-            const colorClass = isInc ? 'inc' : 'exp';
-            const sign = isInc ? '+' : '-';
+            const color = t.type === 'income' ? '#34c759' : '#ff3b30';
+            const sign = t.type === 'income' ? '+' : '-';
+            const bgStr = index % 2 === 0 ? 'background-color: #ffffff;' : 'background-color: #f9f9f9;';
             
             tableHTML += `
-                <tr>
-                    <td class="cell">${date}</td>
-                    <td class="cell" style="text-transform: capitalize;">${t.type}</td>
-                    <td class="cell">${cat}</td>
-                    <td class="cell">${t.title}</td>
-                    <td class="cell ${colorClass}">${sign}₹${t.amount.toLocaleString('en-IN')}</td>
+                <tr style="${bgStr}">
+                    <td style="padding: 10px; border: 1px solid #d1d1d6;">${date}</td>
+                    <td style="padding: 10px; border: 1px solid #d1d1d6; text-transform: capitalize;">${t.type}</td>
+                    <td style="padding: 10px; border: 1px solid #d1d1d6;">${cat}</td>
+                    <td style="padding: 10px; border: 1px solid #d1d1d6;">${t.title}</td>
+                    <td style="padding: 10px; border: 1px solid #d1d1d6; color: ${color}; font-weight: bold;">${sign}₹${t.amount.toLocaleString('en-IN')}</td>
                 </tr>
             `;
         });
 
-        tableHTML += `</table></body></html>`;
+        tableHTML += `</tbody></table></body></html>`;
 
         const blob = new Blob([tableHTML], { type: "application/vnd.ms-excel" });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `SpentTracker_Report_${reportMonthStr}.xls`;
+        a.download = `KiteReport_${getCurrentMonthId()}.xls`;
         a.click();
     }
 
@@ -583,7 +595,7 @@
 
         let chartData = [];
         let chartLabels = [];
-        let referenceMax = 100; 
+        let referenceMax = 100;
 
         if (targetAmount > 0) {
             if (currentChartView === 'day') referenceMax = targetAmount / 30;
@@ -641,20 +653,7 @@
         document.querySelectorAll('.chart-toggle').forEach(el => el.classList.remove('active'));
         document.getElementById('toggle-' + currentChartView).classList.add('active');
 
-        // Widgets Update
-        const daysInMonth = new Date(currentYear, now.getMonth() + 1, 0).getDate();
-        const dailyLimitAmount = targetAmount > 0 ? Math.round(targetAmount / daysInMonth) : 0;
-        
-        const spendTodayEl = document.getElementById('spendToday');
-        spendTodayEl.innerText = `₹${todaySpent.toLocaleString('en-IN')}`;
-        
-        if (dailyLimitAmount > 0 && todaySpent > dailyLimitAmount) {
-            spendTodayEl.style.color = "var(--danger)";
-        } else {
-            spendTodayEl.style.color = "var(--text)";
-        }
-
-        document.getElementById('dailyLimitWidget').innerText = `₹${dailyLimitAmount.toLocaleString('en-IN')}`;
+        document.getElementById('spendToday').innerText = `₹${todaySpent.toLocaleString('en-IN')}`;
         document.getElementById('spendWeek').innerText = `₹${weekSpent.toLocaleString('en-IN')}`;
         document.getElementById('spendMonthWidget').innerText = `₹${monthSpent.toLocaleString('en-IN')}`;
         document.getElementById('incomeMonthWidget').innerText = `₹${monthIncome.toLocaleString('en-IN')}`;
