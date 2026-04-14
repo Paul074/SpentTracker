@@ -124,6 +124,12 @@
         .recurring-checkbox { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; padding: 10px; background: var(--bg); border-radius: 12px; margin-bottom: 16px; }
         .recurring-checkbox input[type="checkbox"] { width: 20px; height: 20px; margin: 0; }
 
+        /* UI Pattern: Empty State Placeholder Card */
+        .empty-state-card { text-align: center; padding: 35px 20px; border: 2px dashed #e5e5ea; border-radius: 20px; margin-bottom: 15px; }
+        .empty-state-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.5; }
+        .empty-state-title { font-size: 13px; color: var(--subtext); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .empty-state-sub { font-size: 12px; color: var(--subtext); margin-top: 6px; font-weight: 500; }
+
         @media (min-width: 600px) {
             html { background-color: #d1d1d6; }
             body { max-width: 400px; margin: 0 auto; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.1); position: relative; }
@@ -309,8 +315,14 @@
 <div class="modal-overlay" id="settingsModal" onclick="closeModal(event, 'settingsModal')">
     <div class="modal-content" onclick="event.stopPropagation()">
         <button class="close-btn" onclick="closeModal(null, 'settingsModal', true)">×</button>
-        <h2 style="margin-bottom: 24px;">Categories & Limits</h2>
+        <h2 style="margin-bottom: 24px;">Settings</h2>
         
+        <div style="font-size: 11px; color: var(--subtext); margin-bottom: 10px; font-weight: 600; text-transform: uppercase;">Liquid Cash Config</div>
+        <div style="display: flex; gap: 10px; margin-bottom: 30px;">
+            <input type="number" id="startingBankBalance" placeholder="Starting Cash Balance ₹" value="" style="margin: 0; padding: 14px;">
+            <button class="btn-main" style="margin: 0; width: 100px; padding: 14px;" onclick="saveBankBalance()">Save</button>
+        </div>
+
         <div style="font-size: 11px; color: var(--subtext); margin-bottom: 10px; font-weight: 600;">ENVELOPE BUDGETING (SET MONTHLY LIMITS)</div>
         <div id="categoryListContainer" style="margin-bottom: 20px;"></div>
         
@@ -665,7 +677,11 @@
         document.getElementById('deleteBtn').style.display = 'block'; document.getElementById('inputModal').classList.add('active');
     }
 
-    function openSettings() { renderCategorySettings(); document.getElementById('settingsModal').classList.add('active'); }
+    function openSettings() { 
+        // Note: the singular input is removed in favor of bank accounts modal
+        renderCategorySettings(); 
+        document.getElementById('settingsModal').classList.add('active'); 
+    }
     
     function toggleFields() {
         const type = document.getElementById('entryType').value;
@@ -862,8 +878,14 @@
     function renderCreditTab() {
         const balances = getDerivedBalances();
         const ccContainer = document.getElementById('creditCardContainer');
-        if (db.creditCards.length === 0) ccContainer.innerHTML = '<div class="label" style="text-align:center; margin: 30px 0;">No Credit Cards Added</div>';
-        else {
+        if (db.creditCards.length === 0) {
+            ccContainer.innerHTML = `
+                <div class="empty-state-card">
+                    <div class="empty-state-icon">💳</div>
+                    <div class="empty-state-title">No Credit Cards</div>
+                    <div class="empty-state-sub">Tap + Add Card to start tracking</div>
+                </div>`;
+        } else {
             ccContainer.innerHTML = db.creditCards.map(c => {
                 const initU = c.initialUtilized !== undefined ? c.initialUtilized : (c.utilized || 0);
                 const currentU = Math.max(0, initU + (balances.ccUsage[c.id] || 0));
@@ -877,8 +899,14 @@
             }).join('');
         }
         const loanContainer = document.getElementById('loanContainer');
-        if (db.loans.length === 0) loanContainer.innerHTML = '<div class="label" style="text-align:center; margin: 30px 0;">No Active Loans</div>';
-        else {
+        if (db.loans.length === 0) {
+            loanContainer.innerHTML = `
+                <div class="empty-state-card">
+                    <div class="empty-state-icon">🏦</div>
+                    <div class="empty-state-title">No Active Loans</div>
+                    <div class="empty-state-sub">Tap + Add Loan to start tracking</div>
+                </div>`;
+        } else {
             loanContainer.innerHTML = db.loans.map(l => {
                 const initP = l.initialPrincipal !== undefined ? l.initialPrincipal : (l.principal || 0);
                 const currentP = Math.max(0, initP - (balances.loanPaid[l.id] || 0));
@@ -1001,8 +1029,14 @@
         bankContainer.innerHTML = bankHtml;
 
         let totalInvested = 0; let totalCurrent = 0; const container = document.getElementById('savingsContainer');
-        if (db.savings.length === 0) container.innerHTML = '<div class="label" style="text-align:center; margin: 40px 0;">No assets added yet</div>';
-        else {
+        if (db.savings.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state-card">
+                    <div class="empty-state-icon">📈</div>
+                    <div class="empty-state-title">No Assets Added</div>
+                    <div class="empty-state-sub">Tap the + button to track investments</div>
+                </div>`;
+        } else {
             container.innerHTML = db.savings.map(s => {
                 let actualCurrent = s.current; let fdBadge = '';
                 if (s.type === 'Fixed Deposit' && s.fdStartDate) {
@@ -1090,39 +1124,48 @@
         const startOfWeek = new Date(todayStart); startOfWeek.setDate(now.getDate() - now.getDay()); const weekStartMs = startOfWeek.getTime();
         const currentMonthName = now.toLocaleString('en-US', { month: 'long' });
 
-        // NET WORTH ENGINE
-        const balances = getDerivedBalances();
-        let totalDebt = 0;
-        db.creditCards.forEach(c => { const initU = c.initialUtilized !== undefined ? c.initialUtilized : (c.utilized || 0); totalDebt += Math.max(0, initU + (balances.ccUsage[c.id] || 0)); });
-        db.loans.forEach(l => { const initP = l.initialPrincipal !== undefined ? l.initialPrincipal : (l.principal || 0); totalDebt += Math.max(0, initP - (balances.loanPaid[l.id] || 0)); });
-        
-        let totalAssets = 0; 
-        db.savings.forEach(s => { 
+        // --- NET WORTH ENGINE WITH LIQUID CASH LOGIC ---
+        let allTimeIncome = 0; let allTimeCashSpent = 0; let allTimeRepayments = 0;
+        db.transactions.forEach(t => {
+            if (t.type === 'income') allTimeIncome += t.amount;
+            if (t.type === 'expense' && t.paymentMethod === 'Cash/Bank') allTimeCashSpent += t.amount;
+            if (t.type === 'repayment') allTimeRepayments += t.amount;
+        });
+
+        let totalInvestedInAssets = 0; let totalCurrentAssets = 0;
+        db.savings.forEach(s => {
+            totalInvestedInAssets += s.invested;
             let val = s.current || 0;
             if (s.type === 'Fixed Deposit' && s.fdStartDate) {
                 const start = new Date(s.fdStartDate).getTime();
                 const days = Math.max(0, (Date.now() - start) / (1000 * 60 * 60 * 24));
                 val = Math.round(s.invested * Math.pow(1 + ((s.rate||0)/100), days/365));
             }
-            totalAssets += val; 
+            totalCurrentAssets += val;
         });
-        
-        let totalCash = balances.cashWallet;
-        Object.values(balances.bankBalances).forEach(b => totalCash += b);
 
-        const netWorth = totalAssets + totalCash - totalDebt;
+        let liquidCash = (db.startingBankBalance || 0) + allTimeIncome - allTimeCashSpent - allTimeRepayments - totalInvestedInAssets;
+
+        const balances = getDerivedBalances();
+        let totalDebt = 0;
+        db.creditCards.forEach(c => { const initU = c.initialUtilized !== undefined ? c.initialUtilized : (c.utilized || 0); totalDebt += Math.max(0, initU + (balances.ccUsage[c.id] || 0)); });
+        db.loans.forEach(l => { const initP = l.initialPrincipal !== undefined ? l.initialPrincipal : (l.principal || 0); totalDebt += Math.max(0, initP - (balances.loanPaid[l.id] || 0)); });
+        
+        const netWorth = totalCurrentAssets + liquidCash - totalDebt;
+        
         document.getElementById('netWorthDisplay').innerText = `₹${netWorth.toLocaleString('en-IN')}`;
-        document.getElementById('nwAssets').innerText = `₹${totalAssets.toLocaleString('en-IN')}`;
-        document.getElementById('nwCash').innerText = `₹${totalCash.toLocaleString('en-IN')}`;
+        document.getElementById('nwAssets').innerText = `₹${totalCurrentAssets.toLocaleString('en-IN')}`;
+        document.getElementById('nwCash').innerText = `₹${liquidCash.toLocaleString('en-IN')}`;
         document.getElementById('nwDebt').innerText = `₹${totalDebt.toLocaleString('en-IN')}`;
 
+        // --- DASHBOARD METRICS ---
         document.getElementById('labelSpendMonth').innerText = `Spent in ${currentMonthName}`;
         document.getElementById('labelIncomeMonth').innerText = `${currentMonthName} Income`;
         document.getElementById('labelSavedMonth').innerText = `Saved in ${currentMonthName}`;
 
         let monthIncome = 0, monthSpent = 0, todaySpent = 0, weekSpent = 0;
         let usedCategories = new Set(); let filteredExpenses = [];
-        let categorySpendMap = {};
+        let categorySpendMap = {}; 
 
         const allExp = db.transactions.filter(t => t.type === 'expense');
         allExp.forEach(t => {
@@ -1149,7 +1192,12 @@
 
         const budgetContainer = document.getElementById('categoryBudgetsContainer');
         if(Object.keys(db.categoryLimits).length === 0) {
-            budgetContainer.innerHTML = '<div class="label" style="text-align:center; margin-bottom: 20px;">No limits set. Edit in settings.</div>';
+            budgetContainer.innerHTML = `
+                <div class="empty-state-card">
+                    <div class="empty-state-icon">📊</div>
+                    <div class="empty-state-title">No Limits Set</div>
+                    <div class="empty-state-sub">Tap 'Edit Limits' to create envelope budgets</div>
+                </div>`;
         } else {
             let bHtml = '';
             for (const [cat, limit] of Object.entries(db.categoryLimits)) {
@@ -1181,7 +1229,11 @@
         if (filteredExpenses.length === 0) {
             let emptyMsg = 'No activity found';
             if (activeCategoryFilter === 'Income') emptyMsg = 'No income logged'; else if (activeCategoryFilter === 'Repayments') emptyMsg = 'No repayments logged'; else emptyMsg = 'No expenses found';
-            recentHTML = `<div class="label" style="text-align:center; margin-top:40px;">${emptyMsg}</div>`;
+            recentHTML = `
+                <div class="empty-state-card">
+                    <div class="empty-state-icon">📁</div>
+                    <div class="empty-state-title">${emptyMsg}</div>
+                </div>`;
         } else {
             filteredExpenses.forEach(t => {
                 const dateStr = new Date(t.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
