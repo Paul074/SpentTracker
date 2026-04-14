@@ -55,15 +55,15 @@
         .expense-item { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 16px; border-radius: 20px; margin-bottom: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); cursor: pointer; transition: transform 0.1s; }
         .expense-item:active { transform: scale(0.98); }
         .expense-left { display: flex; align-items: center; gap: 16px; }
-        .icon-box { width: 44px; height: 44px; background: var(--bg); border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 20px; }
+        .icon-box { width: 44px; height: 44px; background: var(--bg); border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 20px; flex-shrink: 0;}
         .title { font-weight: 700; font-size: 16px; margin-bottom: 2px;}
         .date { font-size: 12px; color: var(--subtext); font-weight: 500; }
-        .amount { font-weight: 800; font-size: 16px; }
+        .amount { font-weight: 800; font-size: 16px; text-align: right;}
 
         /* Floating Nav & FAB */
         .fab { position: fixed; bottom: 90px; right: 24px; width: 64px; height: 64px; background: var(--accent); color: white; border-radius: 32px; display: flex; justify-content: center; align-items: center; font-size: 32px; font-weight: 300; box-shadow: 0 8px 24px rgba(0,0,0,0.25); border: none; cursor: pointer; z-index: 100; }
-        .nav-island { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #e5e5ea; padding: 6px; border-radius: 30px; display: flex; gap: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); z-index: 90; }
-        .nav-item { padding: 12px 20px; border-radius: 24px; color: var(--subtext); font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+        .nav-island { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #e5e5ea; padding: 6px; border-radius: 30px; display: flex; gap: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); z-index: 90; width: max-content;}
+        .nav-item { padding: 12px 14px; border-radius: 24px; color: var(--subtext); font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; }
         .nav-item.active { background: var(--card); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 
         /* Modals */
@@ -104,7 +104,14 @@
         .loan-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; font-weight: 500; color: var(--subtext); }
         .loan-val { color: var(--text); font-weight: 700; }
 
-        /* RESPONSIVE DESIGN FOR IPAD / DESKTOP */
+        /* Savings Tab Specifics */
+        .instrument-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 20px; }
+        .inst-btn { background: var(--card); border: 1px solid #e5e5ea; border-radius: 16px; padding: 16px 10px; font-size: 12px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.02);}
+        .inst-btn span { font-size: 28px; }
+        .return-pill { padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: 800; display: inline-block; margin-top: 4px;}
+        .return-pill.pos { background: var(--success-light); color: var(--success); }
+        .return-pill.neg { background: var(--danger-light); color: var(--danger); }
+
         @media (min-width: 600px) {
             html { background-color: #d1d1d6; }
             body { max-width: 400px; margin: 0 auto; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.1); position: relative; }
@@ -211,29 +218,42 @@
     <div id="loanContainer"></div>
 </div>
 
+<div class="container tab-content" id="savings">
+    <div class="header-flex">
+        <h2 style="margin: 0; font-size: 24px; letter-spacing: -0.5px;">Wealth & Savings</h2>
+        <button class="icon-btn" onclick="openSelectInstrumentModal()" style="color: var(--accent); font-weight: 800; font-size: 28px;">+</button>
+    </div>
+
+    <div class="card" style="text-align: center; padding: 24px;">
+        <div class="label">Total Portfolio Value</div>
+        <div class="total-number" id="totalSavingsValue" style="margin-bottom: 5px;">₹0</div>
+        <div id="totalSavingsReturn" style="font-size: 14px; font-weight: 700;"></div>
+    </div>
+
+    <div id="savingsContainer"></div>
+</div>
+
 <button class="fab" onclick="openInputModal()">+</button>
 
 <div class="nav-island">
     <div class="nav-item active" onclick="switchTab('home', this)">Home</div>
     <div class="nav-item" onclick="switchTab('summary', this)">Summary</div>
     <div class="nav-item" onclick="switchTab('credit', this)">Credit</div>
+    <div class="nav-item" onclick="switchTab('savings', this)">Savings</div>
 </div>
 
 <div class="modal-overlay" id="inputModal" onclick="closeModal(event, 'inputModal')">
     <div class="modal-content" onclick="event.stopPropagation()">
         <button class="close-btn" onclick="closeModal(null, 'inputModal', true)">×</button>
         <h2 id="modalTitle" style="margin-bottom: 24px;">New Entry</h2>
-        
         <select id="entryType" onchange="toggleFields()">
             <option value="expense">Expense</option>
             <option value="income">Income</option>
             <option value="target">Set Monthly Target</option>
         </select>
-
         <input type="number" id="amount" placeholder="Amount ₹">
         <input type="text" id="title" placeholder="Title or Note">
         <select id="expCategory"></select>
-
         <button class="btn-main" onclick="saveEntry()">Save</button>
         <button class="btn-danger" id="deleteBtn" onclick="deleteEntry()">Delete Entry</button>
     </div>
@@ -255,11 +275,9 @@
     <div class="modal-content" onclick="event.stopPropagation()">
         <button class="close-btn" onclick="closeModal(null, 'addCardModal', true)">×</button>
         <h2 id="cardModalTitle" style="margin-bottom: 24px;">Add Credit Card</h2>
-        
         <input type="text" id="ccName" placeholder="Card Name (e.g., HDFC Millennia)">
         <input type="number" id="ccLimit" placeholder="Total Credit Limit ₹">
         <input type="number" id="ccUtilized" placeholder="Currently Utilized ₹ (Optional)">
-        
         <button class="btn-main" onclick="saveCreditCard()">Save Card</button>
         <button class="btn-danger" id="deleteCardBtn" onclick="deleteCreditCard()">Remove Card</button>
     </div>
@@ -269,14 +287,44 @@
     <div class="modal-content" onclick="event.stopPropagation()">
         <button class="close-btn" onclick="closeModal(null, 'addLoanModal', true)">×</button>
         <h2 id="loanModalTitle" style="margin-bottom: 24px;">Add Loan</h2>
-        
         <input type="text" id="loanName" placeholder="Loan Title (e.g., Car Loan)">
         <input type="number" id="loanPrincipal" placeholder="Principal Amount ₹">
         <input type="number" id="loanInterest" placeholder="Annual Interest Rate %">
         <input type="number" id="loanTenure" placeholder="Tenure in Months">
-        
         <button class="btn-main" onclick="saveLoan()">Calculate & Save Loan</button>
         <button class="btn-danger" id="deleteLoanBtn" onclick="deleteLoan()">Remove Loan</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="selectInstrumentModal" onclick="closeModal(event, 'selectInstrumentModal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <button class="close-btn" onclick="closeModal(null, 'selectInstrumentModal', true)">×</button>
+        <h2 style="margin-bottom: 5px;">Select Instrument</h2>
+        <p style="color: var(--subtext); font-size: 13px; margin-top: 0;">Choose the asset type to track.</p>
+        
+        <div class="instrument-grid">
+            <button class="inst-btn" onclick="openAddSavingsModal('Mutual Fund', '📊')"><span>📊</span> Mutual Fund</button>
+            <button class="inst-btn" onclick="openAddSavingsModal('Stocks', '📈')"><span>📈</span> Stocks</button>
+            <button class="inst-btn" onclick="openAddSavingsModal('EPF', '🏛️')"><span>🏛️</span> EPF</button>
+            <button class="inst-btn" onclick="openAddSavingsModal('PPF', '🏦')"><span>🏦</span> PPF</button>
+            <button class="inst-btn" onclick="openAddSavingsModal('NPS', '👴')"><span>👴</span> NPS</button>
+            <button class="inst-btn" onclick="openAddSavingsModal('Gold/Silver', '🪙')"><span>🪙</span> Gold</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="addSavingsModal" onclick="closeModal(event, 'addSavingsModal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <button class="close-btn" onclick="closeModal(null, 'addSavingsModal', true)">×</button>
+        <h2 id="savingsModalTitle" style="margin-bottom: 24px;">Add Savings</h2>
+        
+        <input type="text" id="savName" placeholder="Instrument Name (e.g. Nifty 50)">
+        <input type="number" id="savInvested" placeholder="Total Principal Invested ₹">
+        <input type="number" id="savCurrent" placeholder="Current Market Value ₹">
+        <input type="number" id="savRate" placeholder="Interest Rate % (Optional)">
+        
+        <button class="btn-main" onclick="saveSavings()">Save Instrument</button>
+        <button class="btn-danger" id="deleteSavBtn" onclick="deleteSavings()">Remove Instrument</button>
     </div>
 </div>
 
@@ -287,14 +335,17 @@
     
     let db = JSON.parse(localStorage.getItem('kite_db')) || { transactions: [], target: 0 };
     if (!db.categories) db.categories = [...defaultCategories];
-    
-    // Initialize new Credit schemas if they don't exist
     if (!db.creditCards) db.creditCards = [];
     if (!db.loans) db.loans = [];
+    if (!db.savings) db.savings = [];
     
     let editingId = null;
     let editingCreditId = null;
     let editingLoanId = null;
+    let editingSavingsId = null;
+    let selectedSavingsType = '';
+    let selectedSavingsIcon = '';
+
     let activeCategoryFilter = 'All Expenses'; 
     let currentChartView = 'day';
     const getCurrentMonthId = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
@@ -303,6 +354,7 @@
         populateCategorySelects();
         calculateStats();
         renderCreditTab();
+        renderSavingsTab();
     }
 
     function switchTab(tabId, el) {
@@ -311,18 +363,14 @@
         document.getElementById(tabId).classList.add('active');
         el.classList.add('active');
         if(tabId === 'credit') renderCreditTab();
+        if(tabId === 'savings') renderSavingsTab();
     }
 
-    function closeModal(e, modalId, force = false) {
-        if (force || e.target === document.getElementById(modalId)) {
-            document.getElementById(modalId).classList.remove('active');
-        }
-    }
-
-    // --- CORE TRACKER LOGIC (Unchanged) ---
     function setFilter(catName) { activeCategoryFilter = catName; calculateStats(); }
     function setChartView(view) { currentChartView = view; calculateStats(); }
+    function closeModal(e, modalId, force = false) { if (force || e.target === document.getElementById(modalId)) document.getElementById(modalId).classList.remove('active'); }
 
+    // --- Core Tracker ---
     function openInputModal() {
         editingId = null;
         document.getElementById('modalTitle').innerText = "New Entry";
@@ -349,11 +397,7 @@
         document.getElementById('inputModal').classList.add('active');
     }
 
-    function openSettings() {
-        renderCategorySettings();
-        document.getElementById('settingsModal').classList.add('active');
-    }
-
+    function openSettings() { renderCategorySettings(); document.getElementById('settingsModal').classList.add('active'); }
     function toggleFields() {
         const type = document.getElementById('entryType').value;
         document.getElementById('expCategory').style.display = type === 'expense' ? 'block' : 'none';
@@ -368,18 +412,14 @@
     function renderCategorySettings() {
         const container = document.getElementById('categoryListContainer');
         container.innerHTML = db.categories.map((c, i) => `
-            <div class="cat-list-item">
-                <span>${c}</span>
-                <button onclick="deleteCategory(${i})" style="background:none; border:none; color:var(--danger); font-size:18px; cursor:pointer;">🗑️</button>
-            </div>
+            <div class="cat-list-item"><span>${c}</span><button onclick="deleteCategory(${i})" style="background:none; border:none; color:var(--danger); font-size:18px; cursor:pointer;">🗑️</button></div>
         `).join('');
     }
 
     function addCategory() {
         const val = document.getElementById('newCategoryInput').value.trim();
         if(!val) return;
-        db.categories.push(val);
-        document.getElementById('newCategoryInput').value = '';
+        db.categories.push(val); document.getElementById('newCategoryInput').value = '';
         saveDb(); populateCategorySelects(); renderCategorySettings();
     }
 
@@ -400,9 +440,7 @@
             const category = type === 'expense' ? document.getElementById('expCategory').value : '';
             if (editingId) {
                 const index = db.transactions.findIndex(t => t.id === editingId);
-                db.transactions[index].amount = amount;
-                db.transactions[index].title = title;
-                db.transactions[index].category = category;
+                db.transactions[index].amount = amount; db.transactions[index].title = title; db.transactions[index].category = category;
             } else {
                 db.transactions.push({ id: Date.now(), type: type, amount: amount, title: title, category: category, month: getCurrentMonthId(), timestamp: new Date().toISOString() });
             }
@@ -417,12 +455,209 @@
     }
 
     function resetDatabase() {
-        if(!confirm("⚠️ DANGER: This will permanently delete ALL data. Are you absolutely sure?")) return;
-        db = { transactions: [], categories: [...defaultCategories], target: 0, creditCards: [], loans: [] };
-        saveDb(); activeCategoryFilter = 'All Expenses'; populateCategorySelects(); calculateStats(); renderCreditTab();
+        if(!confirm("⚠️ DANGER: This will permanently delete ALL data (Transactions, Cards, Loans, Savings). Are you absolutely sure?")) return;
+        db = { transactions: [], categories: [...defaultCategories], target: 0, creditCards: [], loans: [], savings: [] };
+        saveDb(); activeCategoryFilter = 'All Expenses'; populateCategorySelects(); calculateStats(); renderCreditTab(); renderSavingsTab();
         alert("Database reset successful.");
     }
 
+    // --- Credit Tab ---
+    function openAddCardModal() {
+        editingCreditId = null; document.getElementById('cardModalTitle').innerText = "Add Credit Card";
+        document.getElementById('ccName').value = ''; document.getElementById('ccLimit').value = ''; document.getElementById('ccUtilized').value = '';
+        document.getElementById('deleteCardBtn').style.display = 'none'; document.getElementById('addCardModal').classList.add('active');
+    }
+    function editCreditCard(id) {
+        editingCreditId = id; const card = db.creditCards.find(c => c.id === id); if(!card) return;
+        document.getElementById('cardModalTitle').innerText = "Edit Credit Card";
+        document.getElementById('ccName').value = card.name; document.getElementById('ccLimit').value = card.limit; document.getElementById('ccUtilized').value = card.utilized;
+        document.getElementById('deleteCardBtn').style.display = 'block'; document.getElementById('addCardModal').classList.add('active');
+    }
+    function saveCreditCard() {
+        const name = document.getElementById('ccName').value.trim(); const limit = Number(document.getElementById('ccLimit').value); const utilized = Number(document.getElementById('ccUtilized').value) || 0;
+        if (!name || !limit) return alert("Card Name and Limit are required."); if (utilized > limit) return alert("Utilized amount cannot exceed Total Limit.");
+        if (editingCreditId) {
+            const index = db.creditCards.findIndex(c => c.id === editingCreditId); db.creditCards[index] = { id: editingCreditId, name, limit, utilized };
+        } else { db.creditCards.push({ id: Date.now(), name, limit, utilized }); }
+        saveDb(); closeModal(null, 'addCardModal', true); renderCreditTab();
+    }
+    function deleteCreditCard() {
+        if(!confirm("Remove this credit card?")) return; db.creditCards = db.creditCards.filter(c => c.id !== editingCreditId);
+        saveDb(); closeModal(null, 'addCardModal', true); renderCreditTab();
+    }
+
+    function openAddLoanModal() {
+        editingLoanId = null; document.getElementById('loanModalTitle').innerText = "Add Loan";
+        document.getElementById('loanName').value = ''; document.getElementById('loanPrincipal').value = ''; document.getElementById('loanInterest').value = ''; document.getElementById('loanTenure').value = '';
+        document.getElementById('deleteLoanBtn').style.display = 'none'; document.getElementById('addLoanModal').classList.add('active');
+    }
+    function editLoan(id) {
+        editingLoanId = id; const loan = db.loans.find(l => l.id === id); if(!loan) return;
+        document.getElementById('loanModalTitle').innerText = "Edit Loan";
+        document.getElementById('loanName').value = loan.name; document.getElementById('loanPrincipal').value = loan.principal; document.getElementById('loanInterest').value = loan.rate; document.getElementById('loanTenure').value = loan.tenure;
+        document.getElementById('deleteLoanBtn').style.display = 'block'; document.getElementById('addLoanModal').classList.add('active');
+    }
+    function saveLoan() {
+        const name = document.getElementById('loanName').value.trim(); const principal = Number(document.getElementById('loanPrincipal').value);
+        const rate = Number(document.getElementById('loanInterest').value); const tenure = Number(document.getElementById('loanTenure').value);
+        if (!name || !principal || !rate || !tenure) return alert("All loan fields are required.");
+        const r = (rate / 12) / 100; const emi = Math.round(principal * r * Math.pow(1 + r, tenure) / (Math.pow(1 + r, tenure) - 1));
+        if (editingLoanId) {
+            const index = db.loans.findIndex(l => l.id === editingLoanId); db.loans[index] = { id: editingLoanId, name, principal, rate, tenure, emi };
+        } else { db.loans.push({ id: Date.now(), name, principal, rate, tenure, emi }); }
+        saveDb(); closeModal(null, 'addLoanModal', true); renderCreditTab();
+    }
+    function deleteLoan() {
+        if(!confirm("Remove this loan?")) return; db.loans = db.loans.filter(l => l.id !== editingLoanId);
+        saveDb(); closeModal(null, 'addLoanModal', true); renderCreditTab();
+    }
+
+    function renderCreditTab() {
+        const ccContainer = document.getElementById('creditCardContainer');
+        if (db.creditCards.length === 0) ccContainer.innerHTML = '<div class="label" style="text-align:center; margin: 30px 0;">No Credit Cards Added</div>';
+        else {
+            ccContainer.innerHTML = db.creditCards.map(c => {
+                const pct = Math.min((c.utilized / c.limit) * 100, 100);
+                let colorClass = ''; if (pct > 80) colorClass = 'danger'; else if (pct > 50) colorClass = 'warning';
+                return `<div class="credit-card-ui" onclick="editCreditCard(${c.id})">
+                    <div class="cc-name"><span>${c.name}</span> <span>💳</span></div>
+                    <div class="cc-details">
+                        <div><div class="cc-label">Utilized</div><div class="cc-val">₹${c.utilized.toLocaleString('en-IN')}</div></div>
+                        <div style="text-align: right;"><div class="cc-label">Total Limit</div><div class="cc-val" style="color: rgba(255,255,255,0.7);">₹${c.limit.toLocaleString('en-IN')}</div></div>
+                    </div>
+                    <div class="progress-bg"><div class="progress-fill ${colorClass}" style="width: ${pct}%"></div></div>
+                </div>`;
+            }).join('');
+        }
+        const loanContainer = document.getElementById('loanContainer');
+        if (db.loans.length === 0) loanContainer.innerHTML = '<div class="label" style="text-align:center; margin: 30px 0;">No Active Loans</div>';
+        else {
+            loanContainer.innerHTML = db.loans.map(l => `<div class="loan-card" onclick="editLoan(${l.id})">
+                <div class="loan-header"><div class="loan-name">🏦 ${l.name}</div><div style="text-align: right;"><div class="label" style="font-size: 10px;">Monthly EMI</div><div class="loan-emi">₹${l.emi.toLocaleString('en-IN')}</div></div></div>
+                <div class="loan-stats"><div>Principal: <span class="loan-val">₹${l.principal.toLocaleString('en-IN')}</span></div><div>Interest: <span class="loan-val">${l.rate}%</span></div><div>Tenure: <span class="loan-val">${l.tenure} Months</span></div></div>
+            </div>`).join('');
+        }
+    }
+
+    // --- NEW: Savings Tab ---
+    function openSelectInstrumentModal() {
+        document.getElementById('selectInstrumentModal').classList.add('active');
+    }
+
+    function openAddSavingsModal(type, icon) {
+        closeModal(null, 'selectInstrumentModal', true);
+        editingSavingsId = null;
+        selectedSavingsType = type;
+        selectedSavingsIcon = icon;
+        
+        document.getElementById('savingsModalTitle').innerText = `Add ${type}`;
+        document.getElementById('savName').value = '';
+        document.getElementById('savInvested').value = '';
+        document.getElementById('savCurrent').value = '';
+        document.getElementById('savRate').value = '';
+        document.getElementById('deleteSavBtn').style.display = 'none';
+        
+        document.getElementById('addSavingsModal').classList.add('active');
+    }
+
+    function editSavings(id) {
+        editingSavingsId = id;
+        const sav = db.savings.find(s => s.id === id);
+        if(!sav) return;
+        
+        selectedSavingsType = sav.type;
+        selectedSavingsIcon = sav.icon;
+
+        document.getElementById('savingsModalTitle').innerText = `Edit ${sav.type}`;
+        document.getElementById('savName').value = sav.name;
+        document.getElementById('savInvested').value = sav.invested;
+        document.getElementById('savCurrent').value = sav.current;
+        document.getElementById('savRate').value = sav.rate || '';
+        
+        document.getElementById('deleteSavBtn').style.display = 'block';
+        document.getElementById('addSavingsModal').classList.add('active');
+    }
+
+    function saveSavings() {
+        const name = document.getElementById('savName').value.trim();
+        const invested = Number(document.getElementById('savInvested').value);
+        const current = Number(document.getElementById('savCurrent').value);
+        const rate = document.getElementById('savRate').value ? Number(document.getElementById('savRate').value) : null;
+
+        if (!name || !invested || !current) return alert("Name, Invested, and Current Value are required.");
+
+        if (editingSavingsId) {
+            const index = db.savings.findIndex(s => s.id === editingSavingsId);
+            db.savings[index] = { id: editingSavingsId, type: selectedSavingsType, icon: selectedSavingsIcon, name, invested, current, rate };
+        } else {
+            db.savings.push({ id: Date.now(), type: selectedSavingsType, icon: selectedSavingsIcon, name, invested, current, rate });
+        }
+        
+        saveDb(); closeModal(null, 'addSavingsModal', true); renderSavingsTab();
+    }
+
+    function deleteSavings() {
+        if(!confirm("Remove this saving instrument?")) return;
+        db.savings = db.savings.filter(s => s.id !== editingSavingsId);
+        saveDb(); closeModal(null, 'addSavingsModal', true); renderSavingsTab();
+    }
+
+    function renderSavingsTab() {
+        let totalInvested = 0;
+        let totalCurrent = 0;
+        
+        const container = document.getElementById('savingsContainer');
+        
+        if (db.savings.length === 0) {
+            container.innerHTML = '<div class="label" style="text-align:center; margin: 40px 0;">No savings added yet</div>';
+        } else {
+            container.innerHTML = db.savings.map(s => {
+                totalInvested += s.invested;
+                totalCurrent += s.current;
+                
+                const absReturn = s.current - s.invested;
+                const pctReturn = ((absReturn / s.invested) * 100).toFixed(1);
+                
+                const isPositive = absReturn >= 0;
+                const pillClass = isPositive ? 'pos' : 'neg';
+                const sign = isPositive ? '+' : '';
+                
+                const rateText = s.rate ? `<span style="font-size: 11px; color: var(--subtext); margin-left: 5px;">(${s.rate}% APY)</span>` : '';
+
+                return `
+                <div class="expense-item" onclick="editSavings(${s.id})">
+                    <div class="expense-left">
+                        <div class="icon-box">${s.icon}</div>
+                        <div>
+                            <div class="title" style="font-size: 15px;">${s.name} ${rateText}</div>
+                            <div class="date">Inv: ₹${s.invested.toLocaleString('en-IN')}</div>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="amount">₹${s.current.toLocaleString('en-IN')}</div>
+                        <div class="return-pill ${pillClass}">${sign}${pctReturn}%</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        const topVal = document.getElementById('totalSavingsValue');
+        const topRet = document.getElementById('totalSavingsReturn');
+        
+        topVal.innerText = `₹${totalCurrent.toLocaleString('en-IN')}`;
+        
+        if (totalInvested > 0) {
+            const overallAbs = totalCurrent - totalInvested;
+            const overallPct = ((overallAbs / totalInvested) * 100).toFixed(1);
+            const isPos = overallAbs >= 0;
+            topRet.style.color = isPos ? 'var(--success)' : 'var(--danger)';
+            topRet.innerText = `${isPos ? '+' : ''}₹${overallAbs.toLocaleString('en-IN')} (${isPos ? '+' : ''}${overallPct}%) All Time`;
+        } else {
+            topRet.innerText = '';
+        }
+    }
+
+    // --- Analytics ---
     function exportExcel() {
         const currentMonthId = getCurrentMonthId();
         const currentMonthName = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
@@ -434,25 +669,18 @@
             if (t.type === 'expense') {
                 monthSpent += t.amount;
                 let catName = 'Uncategorized';
-                if (t.category) {
-                    const parts = t.category.split(' ');
-                    catName = parts.length > 1 ? parts.slice(1).join(' ') : t.category;
-                }
+                if (t.category) { const parts = t.category.split(' '); catName = parts.length > 1 ? parts.slice(1).join(' ') : t.category; }
                 catTotals[catName] = (catTotals[catName] || 0) + t.amount;
             }
         });
-
         let netSavings = monthIncome - monthSpent;
+
         let tableHTML = `
             <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
             <head><meta charset="UTF-8"></head><body style="font-family: -apple-system, Arial, sans-serif;">
             <h2 style="color: #000000; text-align: center; margin-bottom: 20px;">Kite Tracker - Financial Report (${currentMonthName})</h2>
             <table border="1" style="border-collapse: collapse; width: 100%; margin-bottom: 30px;">
-                <tr style="background-color: #191919; color: #ffffff;">
-                    <th style="padding: 12px; font-size: 14px;">Total Income</th>
-                    <th style="padding: 12px; font-size: 14px;">Total Expenses</th>
-                    <th style="padding: 12px; font-size: 14px;">Net Savings</th>
-                </tr>
+                <tr style="background-color: #191919; color: #ffffff;"><th style="padding: 12px;">Total Income</th><th style="padding: 12px;">Total Expenses</th><th style="padding: 12px;">Net Savings</th></tr>
                 <tr style="text-align: center; font-weight: bold; font-size: 16px;">
                     <td style="padding: 15px; color: #34c759;">₹${monthIncome.toLocaleString('en-IN')}</td>
                     <td style="padding: 15px; color: #ff3b30;">₹${monthSpent.toLocaleString('en-IN')}</td>
@@ -463,9 +691,7 @@
             <table border="1" style="border-collapse: collapse; width: 100%; margin-bottom: 30px;">
                 <tr style="background-color: #f2f2f6;"><th style="padding: 10px; text-align: left;">Category</th><th style="padding: 10px; text-align: left;">Amount Spent</th></tr>
         `;
-        for (const [cat, total] of Object.entries(catTotals)) {
-            tableHTML += `<tr><td style="padding: 10px;">${cat}</td><td style="padding: 10px; color: #ff3b30; font-weight: bold;">₹${total.toLocaleString('en-IN')}</td></tr>`;
-        }
+        for (const [cat, total] of Object.entries(catTotals)) { tableHTML += `<tr><td style="padding: 10px;">${cat}</td><td style="padding: 10px; color: #ff3b30; font-weight: bold;">₹${total.toLocaleString('en-IN')}</td></tr>`; }
         tableHTML += `</table><h3 style="color: #333333; margin-bottom: 10px;">Full Transaction Ledger</h3>
             <table border="1" style="border-collapse: collapse; width: 100%;">
                 <thead><tr style="background-color: #191919; color: #ffffff; text-align: left;">
@@ -477,18 +703,12 @@
         reportTx.forEach((t, index) => {
             const date = new Date(t.timestamp).toLocaleDateString('en-GB');
             let cleanCat = '-';
-            if (t.category && t.type === 'expense') {
-                const parts = t.category.split(' ');
-                cleanCat = parts.length > 1 ? parts.slice(1).join(' ') : t.category;
-            }
-            const color = t.type === 'income' ? '#34c759' : '#ff3b30';
-            const sign = t.type === 'income' ? '+' : '-';
+            if (t.category && t.type === 'expense') { const parts = t.category.split(' '); cleanCat = parts.length > 1 ? parts.slice(1).join(' ') : t.category; }
+            const color = t.type === 'income' ? '#34c759' : '#ff3b30'; const sign = t.type === 'income' ? '+' : '-';
             const bgStr = index % 2 === 0 ? 'background-color: #ffffff;' : 'background-color: #f9f9f9;';
             tableHTML += `<tr style="${bgStr}">
-                <td style="padding: 10px; border: 1px solid #d1d1d6;">${date}</td>
-                <td style="padding: 10px; border: 1px solid #d1d1d6; text-transform: capitalize;">${t.type}</td>
-                <td style="padding: 10px; border: 1px solid #d1d1d6;">${cleanCat}</td>
-                <td style="padding: 10px; border: 1px solid #d1d1d6;">${t.title}</td>
+                <td style="padding: 10px; border: 1px solid #d1d1d6;">${date}</td><td style="padding: 10px; border: 1px solid #d1d1d6; text-transform: capitalize;">${t.type}</td>
+                <td style="padding: 10px; border: 1px solid #d1d1d6;">${cleanCat}</td><td style="padding: 10px; border: 1px solid #d1d1d6;">${t.title}</td>
                 <td style="padding: 10px; border: 1px solid #d1d1d6; color: ${color}; font-weight: bold;">${sign}₹${t.amount.toLocaleString('en-IN')}</td>
             </tr>`;
         });
@@ -666,159 +886,6 @@
             cardLabel.innerText = "REMAINING BUDGET"; cardLabel.style.color = "var(--subtext)";
             mainDisplay.innerText = `₹${rem.toLocaleString('en-IN')}`; mainDisplay.style.color = "var(--text)";
             subDisplay.innerText = `Monthly target is ₹${targetAmount.toLocaleString('en-IN')}`;
-        }
-    }
-
-    // --- NEW: CREDIT & LOAN LOGIC ---
-    function openAddCardModal() {
-        editingCreditId = null;
-        document.getElementById('cardModalTitle').innerText = "Add Credit Card";
-        document.getElementById('ccName').value = '';
-        document.getElementById('ccLimit').value = '';
-        document.getElementById('ccUtilized').value = '';
-        document.getElementById('deleteCardBtn').style.display = 'none';
-        document.getElementById('addCardModal').classList.add('active');
-    }
-
-    function editCreditCard(id) {
-        editingCreditId = id;
-        const card = db.creditCards.find(c => c.id === id);
-        if(!card) return;
-        document.getElementById('cardModalTitle').innerText = "Edit Credit Card";
-        document.getElementById('ccName').value = card.name;
-        document.getElementById('ccLimit').value = card.limit;
-        document.getElementById('ccUtilized').value = card.utilized;
-        document.getElementById('deleteCardBtn').style.display = 'block';
-        document.getElementById('addCardModal').classList.add('active');
-    }
-
-    function saveCreditCard() {
-        const name = document.getElementById('ccName').value.trim();
-        const limit = Number(document.getElementById('ccLimit').value);
-        const utilized = Number(document.getElementById('ccUtilized').value) || 0;
-
-        if (!name || !limit) return alert("Card Name and Limit are required.");
-        if (utilized > limit) return alert("Utilized amount cannot exceed Total Limit.");
-
-        if (editingCreditId) {
-            const index = db.creditCards.findIndex(c => c.id === editingCreditId);
-            db.creditCards[index] = { id: editingCreditId, name, limit, utilized };
-        } else {
-            db.creditCards.push({ id: Date.now(), name, limit, utilized });
-        }
-        
-        saveDb(); closeModal(null, 'addCardModal', true); renderCreditTab();
-    }
-
-    function deleteCreditCard() {
-        if(!confirm("Remove this credit card?")) return;
-        db.creditCards = db.creditCards.filter(c => c.id !== editingCreditId);
-        saveDb(); closeModal(null, 'addCardModal', true); renderCreditTab();
-    }
-
-    function openAddLoanModal() {
-        editingLoanId = null;
-        document.getElementById('loanModalTitle').innerText = "Add Loan";
-        document.getElementById('loanName').value = '';
-        document.getElementById('loanPrincipal').value = '';
-        document.getElementById('loanInterest').value = '';
-        document.getElementById('loanTenure').value = '';
-        document.getElementById('deleteLoanBtn').style.display = 'none';
-        document.getElementById('addLoanModal').classList.add('active');
-    }
-
-    function editLoan(id) {
-        editingLoanId = id;
-        const loan = db.loans.find(l => l.id === id);
-        if(!loan) return;
-        document.getElementById('loanModalTitle').innerText = "Edit Loan";
-        document.getElementById('loanName').value = loan.name;
-        document.getElementById('loanPrincipal').value = loan.principal;
-        document.getElementById('loanInterest').value = loan.rate;
-        document.getElementById('loanTenure').value = loan.tenure;
-        document.getElementById('deleteLoanBtn').style.display = 'block';
-        document.getElementById('addLoanModal').classList.add('active');
-    }
-
-    function saveLoan() {
-        const name = document.getElementById('loanName').value.trim();
-        const principal = Number(document.getElementById('loanPrincipal').value);
-        const rate = Number(document.getElementById('loanInterest').value);
-        const tenure = Number(document.getElementById('loanTenure').value);
-
-        if (!name || !principal || !rate || !tenure) return alert("All loan fields are required.");
-
-        // EMI Calculation Formula: P * R * (1+R)^N / ((1+R)^N - 1)
-        const r = (rate / 12) / 100;
-        const emi = Math.round(principal * r * Math.pow(1 + r, tenure) / (Math.pow(1 + r, tenure) - 1));
-
-        if (editingLoanId) {
-            const index = db.loans.findIndex(l => l.id === editingLoanId);
-            db.loans[index] = { id: editingLoanId, name, principal, rate, tenure, emi };
-        } else {
-            db.loans.push({ id: Date.now(), name, principal, rate, tenure, emi });
-        }
-        
-        saveDb(); closeModal(null, 'addLoanModal', true); renderCreditTab();
-    }
-
-    function deleteLoan() {
-        if(!confirm("Remove this loan?")) return;
-        db.loans = db.loans.filter(l => l.id !== editingLoanId);
-        saveDb(); closeModal(null, 'addLoanModal', true); renderCreditTab();
-    }
-
-    function renderCreditTab() {
-        const ccContainer = document.getElementById('creditCardContainer');
-        if (db.creditCards.length === 0) {
-            ccContainer.innerHTML = '<div class="label" style="text-align:center; margin: 30px 0;">No Credit Cards Added</div>';
-        } else {
-            ccContainer.innerHTML = db.creditCards.map(c => {
-                const pct = Math.min((c.utilized / c.limit) * 100, 100);
-                let colorClass = '';
-                if (pct > 80) colorClass = 'danger';
-                else if (pct > 50) colorClass = 'warning';
-                
-                return `
-                <div class="credit-card-ui" onclick="editCreditCard(${c.id})">
-                    <div class="cc-name"><span>${c.name}</span> <span>💳</span></div>
-                    <div class="cc-details">
-                        <div>
-                            <div class="cc-label">Utilized</div>
-                            <div class="cc-val">₹${c.utilized.toLocaleString('en-IN')}</div>
-                        </div>
-                        <div style="text-align: right;">
-                            <div class="cc-label">Total Limit</div>
-                            <div class="cc-val" style="color: rgba(255,255,255,0.7);">₹${c.limit.toLocaleString('en-IN')}</div>
-                        </div>
-                    </div>
-                    <div class="progress-bg">
-                        <div class="progress-fill ${colorClass}" style="width: ${pct}%"></div>
-                    </div>
-                </div>`;
-            }).join('');
-        }
-
-        const loanContainer = document.getElementById('loanContainer');
-        if (db.loans.length === 0) {
-            loanContainer.innerHTML = '<div class="label" style="text-align:center; margin: 30px 0;">No Active Loans</div>';
-        } else {
-            loanContainer.innerHTML = db.loans.map(l => `
-                <div class="loan-card" onclick="editLoan(${l.id})">
-                    <div class="loan-header">
-                        <div class="loan-name">🏦 ${l.name}</div>
-                        <div style="text-align: right;">
-                            <div class="label" style="font-size: 10px;">Monthly EMI</div>
-                            <div class="loan-emi">₹${l.emi.toLocaleString('en-IN')}</div>
-                        </div>
-                    </div>
-                    <div class="loan-stats">
-                        <div>Principal: <span class="loan-val">₹${l.principal.toLocaleString('en-IN')}</span></div>
-                        <div>Interest: <span class="loan-val">${l.rate}%</span></div>
-                        <div>Tenure: <span class="loan-val">${l.tenure} Months</span></div>
-                    </div>
-                </div>
-            `).join('');
         }
     }
 
