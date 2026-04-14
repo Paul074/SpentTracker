@@ -144,20 +144,25 @@
             <div class="total-number" id="spendToday" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
         <div class="widget-card">
-            <div class="label" style="font-size: 11px;">Spent This Week</div>
-            <div class="total-number" id="spendWeek" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
+            <div class="label" style="font-size: 11px;">Daily Limit</div>
+            <div class="total-number" id="dailyLimitWidget" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
     </div>
 
     <div class="widget-grid">
         <div class="widget-card">
+            <div class="label" style="font-size: 11px;">Spent This Week</div>
+            <div class="total-number" id="spendWeek" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
+        </div>
+        <div class="widget-card">
             <div class="label" id="labelIncomeMonth" style="font-size: 11px;">Month Income</div>
             <div class="total-number" id="incomeMonthWidget" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
-        <div class="widget-card">
-            <div class="label" id="labelSavedMonth" style="font-size: 11px;">Saved This Month</div>
-            <div class="total-number" id="savedMonth" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
-        </div>
+    </div>
+    
+    <div class="card" style="text-align: center; padding: 24px;">
+        <div class="label" id="labelSavedMonth">Saved This Month</div>
+        <div class="total-number" id="savedMonth" style="font-size: 32px; margin-bottom: 0;">₹0</div>
     </div>
 
     <div class="card" style="text-align: center; padding: 30px;">
@@ -538,10 +543,9 @@
             homeTargetStatus.style.display = "none";
         }
 
-        // NEW: CHART ANCHOR REFERENCE LOGIC
         let chartData = [];
         let chartLabels = [];
-        let referenceMax = 100; // Minimum visual threshold baseline
+        let referenceMax = 100; 
 
         if (targetAmount > 0) {
             if (currentChartView === 'day') referenceMax = targetAmount / 30;
@@ -586,7 +590,6 @@
             });
         }
 
-        // Sets ceiling to the target reference, OR the actual highest spend if you overshoot
         let maxDaily = Math.max(...chartData, referenceMax);
         
         let chartHTML = '';
@@ -600,8 +603,20 @@
         document.querySelectorAll('.chart-toggle').forEach(el => el.classList.remove('active'));
         document.getElementById('toggle-' + currentChartView).classList.add('active');
 
-        // Widgets Update
-        document.getElementById('spendToday').innerText = `₹${todaySpent.toLocaleString('en-IN')}`;
+        // NEW: Daily Limit Math & Color Logic
+        const daysInMonth = new Date(currentYear, now.getMonth() + 1, 0).getDate();
+        const dailyLimitAmount = targetAmount > 0 ? Math.round(targetAmount / daysInMonth) : 0;
+        
+        const spendTodayEl = document.getElementById('spendToday');
+        spendTodayEl.innerText = `₹${todaySpent.toLocaleString('en-IN')}`;
+        
+        if (dailyLimitAmount > 0 && todaySpent > dailyLimitAmount) {
+            spendTodayEl.style.color = "var(--danger)";
+        } else {
+            spendTodayEl.style.color = "var(--text)";
+        }
+
+        document.getElementById('dailyLimitWidget').innerText = `₹${dailyLimitAmount.toLocaleString('en-IN')}`;
         document.getElementById('spendWeek').innerText = `₹${weekSpent.toLocaleString('en-IN')}`;
         document.getElementById('spendMonthWidget').innerText = `₹${monthSpent.toLocaleString('en-IN')}`;
         document.getElementById('incomeMonthWidget').innerText = `₹${monthIncome.toLocaleString('en-IN')}`;
