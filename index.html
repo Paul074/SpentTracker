@@ -447,7 +447,9 @@
     function populateDropdowns() {
         const paySelect = document.getElementById('paymentMethod');
         let payHtml = `<option value="Cash/Bank">Cash / Bank Account</option>`;
-        db.creditCards.forEach(c => { payHtml += `<option value="cc_${c.id}">💳 ${c.name}</option>`; });
+        db.creditCards.forEach(c => {
+            payHtml += `<option value="cc_${c.id}">💳 ${c.name}</option>`;
+        });
         paySelect.innerHTML = payHtml;
 
         const repSelect = document.getElementById('repaymentTarget');
@@ -941,7 +943,6 @@
         const currentMonthName = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
         let monthIncome = 0; let monthSpent = 0; let catTotals = {};
         
-        // Exclude repayments from P&L export calculation
         let reportTx = db.transactions.filter(t => t.month === currentMonthId && t.type !== 'repayment').sort((a,b) => b.id - a.id);
         let repaymentTx = db.transactions.filter(t => t.month === currentMonthId && t.type === 'repayment').sort((a,b) => b.id - a.id);
 
@@ -983,7 +984,6 @@
                 </tr></thead><tbody>
         `;
         
-        // Combine all tx for ledger view
         const allTx = [...reportTx, ...repaymentTx].sort((a,b) => b.id - a.id);
 
         allTx.forEach((t, index) => {
@@ -1053,7 +1053,6 @@
         let monthIncome = 0, monthSpent = 0, todaySpent = 0, weekSpent = 0;
         let usedCategories = new Set(); let filteredExpenses = [];
         
-        // Exclude repayments from budget calculations to prevent double counting
         const allExp = db.transactions.filter(t => t.type === 'expense');
 
         allExp.forEach(t => {
@@ -1067,21 +1066,24 @@
             if (t.type === 'income') {
                 monthIncome += t.amount;
                 if (activeCategoryFilter === 'Income' || activeCategoryFilter === 'All Expenses') filteredExpenses.push(t);
-            }
-            if (t.type === 'expense') {
+            } else if (t.type === 'repayment') {
+                if (activeCategoryFilter === 'All Expenses' || activeCategoryFilter === 'Repayments') filteredExpenses.push(t);
+            } else if (t.type === 'expense') {
                 monthSpent += t.amount;
                 const catKey = t.category || "📦 Uncategorized";
                 usedCategories.add(catKey);
                 if (activeCategoryFilter === 'All Expenses' || activeCategoryFilter === catKey) filteredExpenses.push(t);
             }
-            if (t.type === 'repayment') {
-                if (activeCategoryFilter === 'All Expenses') filteredExpenses.push(t);
-            }
         });
 
         let catArray = Array.from(usedCategories).sort();
-        let pillsHTML = `<div class="cat-pill ${activeCategoryFilter === 'All Expenses' ? 'active' : ''}" onclick="setFilter('All Expenses')">All Expenses</div>
-                         <div class="cat-pill ${activeCategoryFilter === 'Income' ? 'active' : ''}" onclick="setFilter('Income')">Income</div>`;
+        
+        let pillsHTML = `
+            <div class="cat-pill ${activeCategoryFilter === 'All Expenses' ? 'active' : ''}" onclick="setFilter('All Expenses')">All Expenses</div>
+            <div class="cat-pill ${activeCategoryFilter === 'Income' ? 'active' : ''}" onclick="setFilter('Income')">Income</div>
+            <div class="cat-pill ${activeCategoryFilter === 'Repayments' ? 'active' : ''}" onclick="setFilter('Repayments')">Repayments</div>
+        `;
+        
         catArray.forEach(cat => {
             const isActive = activeCategoryFilter === cat ? 'active' : '';
             pillsHTML += `<div class="cat-pill ${isActive}" onclick="setFilter('${cat}')">${cat}</div>`;
@@ -1090,7 +1092,10 @@
 
         let recentHTML = '';
         if (filteredExpenses.length === 0) {
-            let emptyMsg = activeCategoryFilter === 'Income' ? 'No income logged' : `No activity found`;
+            let emptyMsg = 'No activity found';
+            if (activeCategoryFilter === 'Income') emptyMsg = 'No income logged';
+            else if (activeCategoryFilter === 'Repayments') emptyMsg = 'No repayments logged';
+            else emptyMsg = 'No expenses found';
             recentHTML = `<div class="label" style="text-align:center; margin-top:40px;">${emptyMsg}</div>`;
         } else {
             filteredExpenses.forEach(t => {
