@@ -26,7 +26,7 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             margin: 0;
             padding: 0;
-            padding-bottom: 100px;
+            padding-bottom: 140px; /* Enhanced Spacing to clear Nav Bar */
         }
         .container { padding: 20px; }
         .card { background: var(--card); border-radius: 24px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); position: relative; }
@@ -39,7 +39,10 @@
         .total-number { font-size: 40px; font-weight: 800; margin: 5px 0 5px 0; letter-spacing: -1px; transition: color 0.3s; text-align: center;}
         
         .alert-box { background: var(--danger-light); color: var(--danger); padding: 8px 12px; border-radius: 8px; display: inline-block; margin-bottom: 15px; font-size: 13px; font-weight: 700; display: none; width: 100%; box-sizing: border-box; text-align: center;}
-        .icon-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--subtext); padding: 0; }
+        .icon-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--subtext); padding: 0; display: flex; align-items: center; justify-content: center;}
+
+        /* Modern Reset Button Badge */
+        .reset-badge { font-size: 11px; font-weight: 800; background: var(--danger-light); color: var(--danger); padding: 6px 12px; border-radius: 12px; letter-spacing: 0.5px;}
 
         .chart-toggles { display: flex; background: var(--bg); border-radius: 8px; padding: 4px; margin-bottom: 15px; }
         .chart-toggle { flex: 1; text-align: center; font-size: 12px; font-weight: 700; padding: 6px 0; color: var(--subtext); border-radius: 6px; cursor: pointer; transition: all 0.2s; }
@@ -62,8 +65,8 @@
         .date { font-size: 12px; color: var(--subtext); font-weight: 500; }
         .amount { font-weight: 800; font-size: 16px; text-align: right;}
 
-        .fab { position: fixed; bottom: 90px; right: 24px; width: 64px; height: 64px; background: var(--accent); color: white; border-radius: 32px; display: flex; justify-content: center; align-items: center; font-size: 32px; font-weight: 300; box-shadow: 0 8px 24px rgba(0,0,0,0.25); border: none; cursor: pointer; z-index: 100; transition: transform 0.3s, opacity 0.3s;}
-        .nav-island { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #e5e5ea; padding: 6px; border-radius: 30px; display: flex; gap: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); z-index: 90; width: max-content;}
+        .fab { position: fixed; bottom: 100px; right: 24px; width: 64px; height: 64px; background: var(--accent); color: white; border-radius: 32px; display: flex; justify-content: center; align-items: center; font-size: 32px; font-weight: 300; box-shadow: 0 8px 24px rgba(0,0,0,0.25); border: none; cursor: pointer; z-index: 100; transition: transform 0.3s, opacity 0.3s;}
+        .nav-island { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #e5e5ea; padding: 6px; border-radius: 30px; display: flex; gap: 4px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 90; width: max-content; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);}
         .nav-item { padding: 12px 14px; border-radius: 24px; color: var(--subtext); font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; }
         .nav-item.active { background: var(--card); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
 
@@ -111,6 +114,11 @@
         .loan-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; font-weight: 500; color: var(--subtext); }
         .loan-val { color: var(--text); font-weight: 700; }
 
+        /* Sleeker Bank Account Styling */
+        .bank-card { background: var(--card); border-radius: 16px; padding: 16px 20px; margin-bottom: 12px; border: 1px solid #e5e5ea; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.02);}
+        .bank-card-name { font-weight: 700; font-size: 15px;}
+        .bank-card-bal { font-weight: 800; font-size: 16px;}
+
         .instrument-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 20px; }
         .inst-btn { background: var(--card); border: 1px solid #e5e5ea; border-radius: 16px; padding: 16px 10px; font-size: 12px; font-weight: 700; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.02);}
         .inst-btn span { font-size: 28px; }
@@ -125,7 +133,7 @@
         .recurring-checkbox input[type="checkbox"] { width: 20px; height: 20px; margin: 0; }
 
         /* UI Pattern: Empty State Placeholder Card */
-        .empty-state-card { text-align: center; padding: 35px 20px; border: 2px dashed #e5e5ea; border-radius: 20px; margin-bottom: 15px; }
+        .empty-state-card { text-align: center; padding: 35px 20px; border: 2px dashed #d1d1d6; border-radius: 20px; margin-bottom: 15px; }
         .empty-state-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.5; }
         .empty-state-title { font-size: 13px; color: var(--subtext); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
         .empty-state-sub { font-size: 12px; color: var(--subtext); margin-top: 6px; font-weight: 500; }
@@ -145,7 +153,7 @@
         <h2 style="margin: 0; font-size: 24px; letter-spacing: -0.5px;">Dashboard</h2>
         <div class="header-actions">
             <button class="icon-btn" onclick="openWealthModal()">💡</button>
-            <button class="icon-btn" onclick="resetDatabase()" style="color: var(--danger);">🗑️</button>
+            <button class="icon-btn" onclick="resetDatabase()"><span class="reset-badge">RESET APP</span></button>
             <button class="icon-btn" onclick="openSettings()">⚙️</button>
         </div>
     </div>
@@ -234,11 +242,11 @@
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0 10px 0;">
         <div class="label">Category Budgets</div>
-        <button onclick="openSettings()" style="background: none; border: none; color: var(--accent); font-weight: 700; cursor: pointer; font-size: 14px;">Edit Limits</button>
+        <button onclick="openCategoryModal()" style="background: none; border: none; color: var(--accent); font-weight: 700; cursor: pointer; font-size: 14px;">Edit Limits</button>
     </div>
     <div id="categoryBudgetsContainer"></div>
 
-    <button class="btn-secondary" onclick="exportExcel()" style="margin-top: 20px;">Export Full Report (.xls)</button>
+    <button class="btn-secondary" onclick="exportExcel()" style="margin-top: 20px; margin-bottom: 40px;">Export Full Report (.xls)</button>
 </div>
 
 <div class="container tab-content" id="credit">
@@ -271,6 +279,14 @@
         <div class="label">Investments & Assets</div>
         <button class="icon-btn" onclick="openSelectInstrumentModal()" style="color: var(--accent); font-weight: 800; font-size: 24px;">+</button>
     </div>
+    <div class="card" style="text-align: center; padding: 24px;">
+        <div class="label">Total Portfolio Value</div>
+        <div class="total-number" id="totalSavingsValue" style="margin-bottom: 5px;">₹0</div>
+        <div id="totalSavingsReturn" style="font-size: 14px; font-weight: 700;"></div>
+    </div>
+    
+    <div class="category-scroll" id="assetFilterContainer"></div>
+    
     <div id="savingsContainer"></div>
 </div>
 
@@ -289,9 +305,7 @@
         
         <select id="entryType" onchange="toggleFields()">
             <option value="expense">Expense</option>
-            <option value="income">Income</option>
             <option value="repayment">Debt Repayment</option>
-            <option value="target">Set Monthly Target</option>
         </select>
 
         <select id="paymentMethod" style="display: none;"></select>
@@ -312,26 +326,37 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="settingsModal" onclick="closeModal(event, 'settingsModal')">
+<div class="modal-overlay" id="categoryModal" onclick="closeModal(event, 'categoryModal')">
     <div class="modal-content" onclick="event.stopPropagation()">
-        <button class="close-btn" onclick="closeModal(null, 'settingsModal', true)">×</button>
-        <h2 style="margin-bottom: 24px;">Settings</h2>
-        
-        <div style="font-size: 11px; color: var(--subtext); margin-bottom: 10px; font-weight: 600; text-transform: uppercase;">Liquid Cash Config</div>
-        <div style="display: flex; gap: 10px; margin-bottom: 30px;">
-            <input type="number" id="startingBankBalance" placeholder="Starting Cash Balance ₹" value="" style="margin: 0; padding: 14px;">
-            <button class="btn-main" style="margin: 0; width: 100px; padding: 14px;" onclick="saveBankBalance()">Save</button>
-        </div>
-
-        <div style="font-size: 11px; color: var(--subtext); margin-bottom: 10px; font-weight: 600;">ENVELOPE BUDGETING (SET MONTHLY LIMITS)</div>
+        <button class="close-btn" onclick="closeModal(null, 'categoryModal', true)">×</button>
+        <h2 style="margin-bottom: 24px;">Envelope Budgets</h2>
+        <div style="font-size: 11px; color: var(--subtext); margin-bottom: 10px; font-weight: 600;">SET MONTHLY CATEGORY LIMITS</div>
         <div id="categoryListContainer" style="margin-bottom: 20px;"></div>
-        
         <div style="display: flex; gap: 10px; margin-bottom: 30px;">
             <input type="text" id="newCategoryInput" placeholder="New Cat (e.g. ✈️ Travel)" style="margin: 0; padding: 14px;">
             <button class="btn-main" style="margin: 0; width: 80px; padding: 14px;" onclick="addCategory()">Add</button>
         </div>
+    </div>
+</div>
 
-        <div style="border-top: 1px solid #e5e5ea; padding-top: 20px;">
+<div class="modal-overlay" id="settingsModal" onclick="closeModal(event, 'settingsModal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <button class="close-btn" onclick="closeModal(null, 'settingsModal', true)">×</button>
+        <h2 style="margin-bottom: 24px;">Settings & Config</h2>
+        
+        <div style="font-size: 11px; color: var(--subtext); margin-bottom: 10px; font-weight: 600; text-transform: uppercase;">Log Monthly Income</div>
+        <input type="number" id="incomeAmount" placeholder="Income Amount ₹">
+        <input type="text" id="incomeTitle" placeholder="Source / Note">
+        <select id="incomeBankSelect"></select>
+        <button class="btn-main" onclick="saveIncomeFromSettings()">Save Income</button>
+
+        <div style="font-size: 11px; color: var(--subtext); margin: 30px 0 10px 0; font-weight: 600; text-transform: uppercase;">Set Monthly Target</div>
+        <div style="display: flex; gap: 10px;">
+            <input type="number" id="monthlyTargetAmount" placeholder="Target ₹" style="margin: 0; padding: 14px;">
+            <button class="btn-main" style="margin: 0; width: 100px; padding: 14px;" onclick="saveTargetFromSettings()">Save</button>
+        </div>
+
+        <div style="border-top: 1px solid #e5e5ea; margin-top: 30px; padding-top: 20px;">
             <div class="label" style="margin-bottom: 10px;">Database Backup</div>
             <button class="btn-secondary" onclick="exportJSONBackup()" style="margin-top:0;">Export Backup (.json)</button>
             <button class="btn-secondary" onclick="document.getElementById('importFile').click()">Restore Backup (.json)</button>
@@ -416,7 +441,7 @@
         <input type="number" id="savInvested" placeholder="Total Principal Invested ₹"><input type="number" id="savCurrent" placeholder="Current Market Value ₹"><input type="number" id="savRate" placeholder="Interest Rate % (Optional)">
         
         <div id="sipSection" style="display: flex; gap: 10px; margin-top: 16px;">
-            <input type="number" id="savSipAmount" placeholder="Monthly SIP/Auto-Debit ₹" style="margin-bottom: 0; flex: 1;"><input type="number" id="savSipDate" placeholder="Date (1-31)" min="1" max="31" style="margin-bottom: 0; flex: 1;">
+            <input type="number" id="savSipAmount" placeholder="Monthly Auto-Invest ₹" style="margin-bottom: 0; flex: 1;"><input type="number" id="savSipDate" placeholder="Date (1-31)" min="1" max="31" style="margin-bottom: 0; flex: 1;">
         </div>
         <p id="sipDisclaimer" style="font-size: 11px; color: var(--subtext); margin-top: 8px; margin-bottom: 16px; font-weight: 500;">*Leave blank if no automated monthly investment.</p>
         
@@ -475,11 +500,9 @@
     if (!db.savings) db.savings = [];
     if (!db.bankAccounts) db.bankAccounts = [];
 
-    // Migration of old single startingBankBalance to the new Multi-Account array
+    // Migration
     if (db.startingBankBalance !== undefined) {
-        if (db.startingBankBalance > 0) {
-            db.bankAccounts.push({ id: Date.now(), name: "Main Bank Account", startingBalance: db.startingBankBalance });
-        }
+        if (db.startingBankBalance > 0) db.bankAccounts.push({ id: Date.now(), name: "Main Bank Account", startingBalance: db.startingBankBalance });
         delete db.startingBankBalance;
         localStorage.setItem('kite_db', JSON.stringify(db));
     }
@@ -487,6 +510,8 @@
     let editingId = null; let editingCreditId = null; let editingLoanId = null; let editingSavingsId = null; let editingBankId = null;
     let selectedSavingsType = ''; let selectedSavingsIcon = ''; let savIsHistorical = false;
     let activeCategoryFilter = 'All Expenses'; let currentChartView = 'day';
+    let activeAssetFilter = 'All Assets';
+
     const getCurrentMonthId = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
 
     function init() {
@@ -568,6 +593,7 @@
     }
 
     function setFilter(catName) { activeCategoryFilter = catName; calculateStats(); }
+    function setAssetFilter(type) { activeAssetFilter = type; renderSavingsTab(); }
     function setChartView(view) { currentChartView = view; calculateStats(); }
     function closeModal(e, modalId, force = false) { if (force || e.target === document.getElementById(modalId)) document.getElementById(modalId).classList.remove('active'); }
 
@@ -600,7 +626,7 @@
 
         // Deduct asset investments from specific banks (SKIP IF HISTORICAL)
         db.savings.forEach(s => {
-            if (s.isHistorical) return; // Do not deduct already owned assets from current balance
+            if (s.isHistorical) return; 
             const pm = s.paymentMethod || 'cash';
             if (pm.startsWith('bank_')) bankBalances[pm.split('_')[1]] = (bankBalances[pm.split('_')[1]] || 0) - s.invested;
             else cashWallet -= s.invested;
@@ -616,7 +642,7 @@
         db.bankAccounts.forEach(b => bankOpts += `<option value="bank_${b.id}">🏦 ${b.name}</option>`);
 
         // Input Modal Payment Method Context
-        const entryType = document.getElementById('entryType').value;
+        const entryType = document.getElementById('entryType').value || 'expense';
         const paySelect = document.getElementById('paymentMethod');
         let txPayHtml = bankOpts;
         
@@ -631,26 +657,32 @@
 
         // Debt Repayment Context
         const repSelect = document.getElementById('repaymentTarget');
-        let repHtml = `<option value="">Select Debt to Pay...</option>`;
-        if (db.creditCards.length > 0) {
-            repHtml += `<optgroup label="Credit Cards">`;
-            db.creditCards.forEach(c => { 
-                const initU = c.initialUtilized !== undefined ? c.initialUtilized : (c.utilized || 0);
-                const currentU = Math.max(0, initU + (balances.ccUsage[c.id] || 0));
-                repHtml += `<option value="cc_${c.id}">💳 ${c.name} (Due: ₹${currentU.toLocaleString('en-IN')})</option>`; 
-            });
-            repHtml += `</optgroup>`;
+        if (repSelect) {
+            let repHtml = `<option value="">Select Debt to Pay...</option>`;
+            if (db.creditCards.length > 0) {
+                repHtml += `<optgroup label="Credit Cards">`;
+                db.creditCards.forEach(c => { 
+                    const initU = c.initialUtilized !== undefined ? c.initialUtilized : (c.utilized || 0);
+                    const currentU = Math.max(0, initU + (balances.ccUsage[c.id] || 0));
+                    repHtml += `<option value="cc_${c.id}">💳 ${c.name} (Due: ₹${currentU.toLocaleString('en-IN')})</option>`; 
+                });
+                repHtml += `</optgroup>`;
+            }
+            if (db.loans.length > 0) {
+                repHtml += `<optgroup label="Loans">`;
+                db.loans.forEach(l => { 
+                    const initP = l.initialPrincipal !== undefined ? l.initialPrincipal : (l.principal || 0);
+                    const currentP = Math.max(0, initP - (balances.loanPaid[l.id] || 0));
+                    repHtml += `<option value="loan_${l.id}">🏦 ${l.name} (Bal: ₹${currentP.toLocaleString('en-IN')})</option>`; 
+                });
+                repHtml += `</optgroup>`;
+            }
+            repSelect.innerHTML = repHtml;
         }
-        if (db.loans.length > 0) {
-            repHtml += `<optgroup label="Loans">`;
-            db.loans.forEach(l => { 
-                const initP = l.initialPrincipal !== undefined ? l.initialPrincipal : (l.principal || 0);
-                const currentP = Math.max(0, initP - (balances.loanPaid[l.id] || 0));
-                repHtml += `<option value="loan_${l.id}">🏦 ${l.name} (Bal: ₹${currentP.toLocaleString('en-IN')})</option>`; 
-            });
-            repHtml += `</optgroup>`;
-        }
-        repSelect.innerHTML = repHtml;
+
+        // Settings Income Dropdown Context
+        const incomePaySelect = document.getElementById('incomeBankSelect');
+        if (incomePaySelect) incomePaySelect.innerHTML = bankOpts;
 
         // Savings Payment Source Context
         const savPaySelect = document.getElementById('savPaymentMethod');
@@ -689,25 +721,48 @@
     }
 
     function openSettings() { 
-        document.getElementById('startingBankBalance').value = db.startingBankBalance || '';
-        renderCategorySettings(); 
+        document.getElementById('monthlyTargetAmount').value = db.target || '';
+        populateDropdowns();
         document.getElementById('settingsModal').classList.add('active'); 
     }
 
-    function saveBankBalance() {
-        db.startingBankBalance = Number(document.getElementById('startingBankBalance').value) || 0;
-        saveDb(); calculateStats(); alert("Starting balance updated.");
+    function openCategoryModal() {
+        renderCategorySettings();
+        document.getElementById('categoryModal').classList.add('active');
+    }
+
+    function saveIncomeFromSettings() {
+        const amount = Number(document.getElementById('incomeAmount').value);
+        if (!amount) return alert("Enter income amount.");
+        const title = document.getElementById('incomeTitle').value || "Income";
+        const paymentMethod = document.getElementById('incomeBankSelect').value || 'cash';
+        
+        db.transactions.push({ 
+            id: Date.now(), type: 'income', amount: amount, title: title, category: '', 
+            paymentMethod: paymentMethod, repaymentTarget: null, recurringId: null,
+            month: getCurrentMonthId(), timestamp: new Date().toISOString() 
+        });
+        saveDb(); 
+        document.getElementById('incomeAmount').value = '';
+        document.getElementById('incomeTitle').value = '';
+        closeModal(null, 'settingsModal', true); 
+        calculateStats(); renderSavingsTab(); alert("Income successfully logged.");
+    }
+
+    function saveTargetFromSettings() {
+        const amt = Number(document.getElementById('monthlyTargetAmount').value);
+        db.target = amt;
+        saveDb(); calculateStats(); alert("Monthly target updated.");
     }
     
     function toggleFields() {
         const type = document.getElementById('entryType').value;
-        populateDropdowns(); // Re-populate to adjust payment methods based on type
+        populateDropdowns(); 
         
         document.getElementById('expCategory').style.display = type === 'expense' ? 'block' : 'none';
-        document.getElementById('paymentMethod').style.display = (type === 'expense' || type === 'income' || type === 'repayment') ? 'block' : 'none';
+        document.getElementById('paymentMethod').style.display = (type === 'expense' || type === 'repayment') ? 'block' : 'none';
         document.getElementById('recurringToggle').style.display = (!editingId && type === 'expense') ? 'flex' : 'none';
         document.getElementById('repaymentTarget').style.display = type === 'repayment' ? 'block' : 'none';
-        document.getElementById('title').style.display = type === 'target' ? 'none' : 'block';
         toggleRecurringDate();
     }
 
@@ -722,7 +777,6 @@
         select.innerHTML = db.categories.map(c => `<option value="${c}">${c}</option>`).join('');
     }
 
-    // --- Envelope Budgeting ---
     function renderCategorySettings() {
         const container = document.getElementById('categoryListContainer');
         container.innerHTML = db.categories.map((c, i) => `
@@ -758,39 +812,36 @@
         const amount = Number(document.getElementById('amount').value);
         if (!amount) return alert("Enter an amount.");
         
-        if (type === 'target') {
-            db.target = amount;
-        } else {
-            const title = document.getElementById('title').value || type;
-            const category = type === 'expense' ? document.getElementById('expCategory').value : '';
-            const paymentMethod = document.getElementById('paymentMethod').value || 'cash';
-            const repaymentTarget = type === 'repayment' ? document.getElementById('repaymentTarget').value : null;
-            
-            const isRec = document.getElementById('isRecurring').checked;
-            const recDate = Number(document.getElementById('recurringDate').value);
+        const title = document.getElementById('title').value || type;
+        const category = type === 'expense' ? document.getElementById('expCategory').value : '';
+        const paymentMethod = document.getElementById('paymentMethod').value || 'cash';
+        const repaymentTarget = type === 'repayment' ? document.getElementById('repaymentTarget').value : null;
+        
+        const isRec = document.getElementById('isRecurring').checked;
+        const recDate = Number(document.getElementById('recurringDate').value);
 
-            if (type === 'repayment' && !repaymentTarget) return alert("Select a credit card or loan to repay.");
-            
-            let recId = null;
-            if (!editingId && type === 'expense' && isRec) {
-                if (!recDate || recDate < 1 || recDate > 31) return alert("Enter a valid calendar date (1-31) for the recurring overhead.");
-                recId = Date.now() + "R";
-                db.recurringOverheads.push({ id: recId, title, amount, category, paymentMethod, date: recDate });
-            }
-
-            if (editingId) {
-                const index = db.transactions.findIndex(t => t.id === editingId);
-                db.transactions[index].amount = amount; db.transactions[index].title = title; 
-                db.transactions[index].category = category; db.transactions[index].paymentMethod = paymentMethod;
-                db.transactions[index].repaymentTarget = repaymentTarget;
-            } else {
-                db.transactions.push({ 
-                    id: Date.now(), type: type, amount: amount, title: title, category: category, 
-                    paymentMethod: paymentMethod, repaymentTarget: repaymentTarget, recurringId: recId,
-                    month: getCurrentMonthId(), timestamp: new Date().toISOString() 
-                });
-            }
+        if (type === 'repayment' && !repaymentTarget) return alert("Select a credit card or loan to repay.");
+        
+        let recId = null;
+        if (!editingId && type === 'expense' && isRec) {
+            if (!recDate || recDate < 1 || recDate > 31) return alert("Enter a valid calendar date (1-31) for the recurring overhead.");
+            recId = Date.now() + "R";
+            db.recurringOverheads.push({ id: recId, title, amount, category, paymentMethod, date: recDate });
         }
+
+        if (editingId) {
+            const index = db.transactions.findIndex(t => t.id === editingId);
+            db.transactions[index].amount = amount; db.transactions[index].title = title; 
+            db.transactions[index].category = category; db.transactions[index].paymentMethod = paymentMethod;
+            db.transactions[index].repaymentTarget = repaymentTarget;
+        } else {
+            db.transactions.push({ 
+                id: Date.now(), type: type, amount: amount, title: title, category: category, 
+                paymentMethod: paymentMethod, repaymentTarget: repaymentTarget, recurringId: recId,
+                month: getCurrentMonthId(), timestamp: new Date().toISOString() 
+            });
+        }
+        
         saveDb(); closeModal(null, 'inputModal', true); calculateStats(); renderCreditTab(); renderSavingsTab(); populateDropdowns();
     }
 
@@ -950,7 +1001,6 @@
         const sipSection = document.getElementById('sipSection');
         const sipDisclaimer = document.getElementById('sipDisclaimer');
 
-        // Defaults
         npsBlock.style.display = 'none';
         fdBlock.style.display = 'none';
         currentInput.style.display = 'block';
@@ -961,8 +1011,8 @@
             npsBlock.style.display = 'block';
         } else if (type === 'Fixed Deposit') {
             fdBlock.style.display = 'block';
-            currentInput.style.display = 'none'; // Auto-calculated
-            sipSection.style.display = 'none'; // FDs don't have monthly SIPs
+            currentInput.style.display = 'none'; 
+            sipSection.style.display = 'none'; 
             sipDisclaimer.style.display = 'none';
         }
     }
@@ -1062,7 +1112,6 @@
         saveDb(); closeModal(null, 'addSavingsModal', true); renderSavingsTab(); calculateStats();
     }
 
-    // --- FEATURE: Asset Liquidation ---
     function redeemSavings() {
         const sav = db.savings.find(s => s.id === editingSavingsId);
         if(!sav) return;
@@ -1080,7 +1129,7 @@
         const finalAmount = Number(rawAmount);
         if (isNaN(finalAmount) || finalAmount <= 0) return alert("Invalid amount. Liquidation cancelled.");
 
-        // 1. Create Income Transaction
+        // Create Income Transaction
         db.transactions.push({ 
             id: Date.now(), 
             type: 'income', 
@@ -1092,7 +1141,7 @@
             timestamp: new Date().toISOString() 
         });
 
-        // 2. Remove Asset
+        // Remove Asset
         db.savings = db.savings.filter(s => s.id !== editingSavingsId);
         
         saveDb(); 
@@ -1107,37 +1156,46 @@
         const bankContainer = document.getElementById('bankAccountsContainer');
         
         let bankHtml = `
-            <div class="loan-card" style="margin-bottom: 8px;">
-                <div class="loan-header" style="border:none; padding:0; margin:0;">
-                    <div class="loan-name">💵 Cash Wallet</div>
-                    <div class="loan-emi" style="color: var(--text);">₹${balances.cashWallet.toLocaleString('en-IN')}</div>
-                </div>
+            <div class="bank-card">
+                <div class="bank-card-name">💵 Cash Wallet</div>
+                <div class="bank-card-bal">₹${balances.cashWallet.toLocaleString('en-IN')}</div>
             </div>
         `;
         
         db.bankAccounts.forEach(b => {
             const currentBal = balances.bankBalances[b.id] || 0;
             bankHtml += `
-            <div class="loan-card" style="margin-bottom: 8px; cursor:pointer;" onclick="editBankAccount(${b.id})">
-                <div class="loan-header" style="border:none; padding:0; margin:0;">
-                    <div class="loan-name">🏦 ${b.name}</div>
-                    <div class="loan-emi" style="color: var(--text);">₹${currentBal.toLocaleString('en-IN')}</div>
-                </div>
+            <div class="bank-card" style="cursor:pointer;" onclick="editBankAccount(${b.id})">
+                <div class="bank-card-name">🏦 ${b.name}</div>
+                <div class="bank-card-bal">₹${currentBal.toLocaleString('en-IN')}</div>
             </div>`;
         });
         bankContainer.innerHTML = bankHtml;
 
         let totalInvested = 0; let totalCurrent = 0; const container = document.getElementById('savingsContainer');
         
-        if (db.savings.length === 0) {
+        // Build Asset Pill Filter
+        const uniqueAssets = new Set(db.savings.map(s => s.type));
+        let catArray = Array.from(uniqueAssets).sort();
+        let pillsHTML = `<div class="cat-pill ${activeAssetFilter === 'All Assets' ? 'active' : ''}" onclick="setAssetFilter('All Assets')">All Assets</div>`;
+        catArray.forEach(cat => {
+            const isActive = activeAssetFilter === cat ? 'active' : '';
+            pillsHTML += `<div class="cat-pill ${isActive}" onclick="setAssetFilter('${cat}')">${cat}</div>`;
+        });
+        document.getElementById('assetFilterContainer').innerHTML = pillsHTML;
+
+        // Apply Filter
+        const filteredSavings = activeAssetFilter === 'All Assets' ? db.savings : db.savings.filter(s => s.type === activeAssetFilter);
+
+        if (filteredSavings.length === 0) {
             container.innerHTML = `
                 <div class="empty-state-card">
                     <div class="empty-state-icon">📈</div>
-                    <div class="empty-state-title">No Assets Added</div>
+                    <div class="empty-state-title">No Assets Found</div>
                     <div class="empty-state-sub">Tap the + button to track investments</div>
                 </div>`;
         } else {
-            container.innerHTML = db.savings.map(s => {
+            container.innerHTML = filteredSavings.map(s => {
                 let actualCurrent = s.current; let fdBadge = '';
                 if (s.type === 'Fixed Deposit' && s.fdStartDate) {
                     const start = new Date(s.fdStartDate).getTime(); const days = Math.max(0, (Date.now() - start) / (1000 * 60 * 60 * 24));
@@ -1145,7 +1203,9 @@
                     const matDate = new Date(start); matDate.setMonth(matDate.getMonth() + s.fdTenure);
                     fdBadge = `<div style="font-size: 11px; color: var(--subtext); margin-top: 4px; font-weight: 600;">Matures: ${matDate.toLocaleDateString('en-GB')}</div>`;
                 }
-                totalInvested += s.invested; totalCurrent += actualCurrent;
+                
+                // Add to globals only for the overall portfolio
+                
                 const absReturn = actualCurrent - s.invested; const pctReturn = ((absReturn / s.invested) * 100).toFixed(1);
                 const isPositive = absReturn >= 0; const pillClass = isPositive ? 'pos' : 'neg'; const sign = isPositive ? '+' : '';
                 const rateText = s.rate ? `<span style="font-size: 11px; color: var(--subtext); margin-left: 5px;">(${s.rate}% APY)</span>` : '';
@@ -1169,6 +1229,7 @@
                             <div class="date">Inv: ₹${s.invested.toLocaleString('en-IN')}</div>
                             ${npsBadge}
                             ${sipBadge}
+                            ${fdBadge}
                         </div>
                     </div>
                     <div style="text-align: right;">
@@ -1178,6 +1239,16 @@
                 </div>`;
             }).join('');
         }
+
+        // Global Portfolio Calculation (ignoring filter)
+        db.savings.forEach(s => {
+            let actualCurrent = s.current; 
+            if (s.type === 'Fixed Deposit' && s.fdStartDate) {
+                const start = new Date(s.fdStartDate).getTime(); const days = Math.max(0, (Date.now() - start) / (1000 * 60 * 60 * 24));
+                actualCurrent = Math.round(s.invested * Math.pow(1 + ((s.rate||0)/100), days/365));
+            }
+            totalInvested += s.invested; totalCurrent += actualCurrent;
+        });
 
         const topVal = document.getElementById('totalSavingsValue');
         const topRet = document.getElementById('totalSavingsReturn');
@@ -1368,16 +1439,20 @@
         monthTx.forEach(t => {
             if (t.type === 'income') {
                 monthIncome += t.amount;
-                if (activeCategoryFilter === 'Income' || activeCategoryFilter === 'All Expenses') filteredExpenses.push(t);
-            } else if (t.type === 'repayment') {
-                if (activeCategoryFilter === 'All Expenses' || activeCategoryFilter === 'Repayments') filteredExpenses.push(t);
             } else if (t.type === 'expense') {
                 monthSpent += t.amount;
                 const catKey = t.category || "📦 Uncategorized";
                 usedCategories.add(catKey);
                 categorySpendMap[catKey] = (categorySpendMap[catKey] || 0) + t.amount;
-                if (activeCategoryFilter === 'All Expenses' || activeCategoryFilter === catKey) filteredExpenses.push(t);
             }
+            
+            // Standard feed filtering
+            if (activeCategoryFilter === 'All Expenses' || activeCategoryFilter === t.category) {
+                if (t.type === 'expense') filteredExpenses.push(t);
+            }
+            if (activeCategoryFilter === 'Income' && t.type === 'income') filteredExpenses.push(t);
+            if (activeCategoryFilter === 'Repayments' && t.type === 'repayment') filteredExpenses.push(t);
+            if (activeCategoryFilter === 'All Expenses' && (t.type === 'income' || t.type === 'repayment')) filteredExpenses.push(t);
         });
 
         const budgetContainer = document.getElementById('categoryBudgetsContainer');
