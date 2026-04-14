@@ -152,8 +152,8 @@
             <div class="total-number" id="spendToday" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
         <div class="widget-card">
-            <div class="label" id="safeDailyLimitLabel" style="font-size: 11px; color: var(--success);">Safe Daily Limit</div>
-            <div class="total-number" id="safeDailyLimit" style="font-size: 24px; margin: 5px 0 0 0; color: var(--success);">₹0</div>
+            <div class="label" id="dailyLimitLabel" style="font-size: 11px;">Daily Limit</div>
+            <div class="total-number" id="dailyLimit" style="font-size: 24px; margin: 5px 0 0 0;">₹0</div>
         </div>
     </div>
 
@@ -556,9 +556,7 @@
         const currentMonthId = getCurrentMonthId();
         const now = new Date();
         const currentYear = now.getFullYear();
-        const daysPassed = now.getDate();
         const daysInMonth = new Date(currentYear, now.getMonth() + 1, 0).getDate();
-        const daysRemaining = daysInMonth - daysPassed + 1;
 
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
         const startOfWeek = new Date(todayStart);
@@ -723,12 +721,14 @@
         document.querySelectorAll('.chart-toggle').forEach(el => el.classList.remove('active'));
         document.getElementById('toggle-' + currentChartView).classList.add('active');
 
-        const rem = targetAmount - monthSpent;
-        const safeDaily = rem > 0 ? Math.floor(rem / daysRemaining) : 0;
+        // STATIC DAILY LIMIT CALCULATION
+        const dailyLimit = targetAmount > 0 ? Math.floor(targetAmount / daysInMonth) : 0;
 
         const spendTodayEl = document.getElementById('spendToday');
         spendTodayEl.innerText = `₹${todaySpent.toLocaleString('en-IN')}`;
-        if (targetAmount > 0 && todaySpent > safeDaily) {
+        
+        // DYNAMIC COLOR FEEDBACK BASED ON STATIC LIMIT
+        if (targetAmount > 0 && todaySpent > dailyLimit) {
             spendTodayEl.style.color = "var(--danger)";
         } else {
             spendTodayEl.style.color = "var(--text)";
@@ -738,16 +738,20 @@
         document.getElementById('spendMonthWidget').innerText = `₹${monthSpent.toLocaleString('en-IN')}`;
         document.getElementById('incomeMonthWidget').innerText = `₹${monthIncome.toLocaleString('en-IN')}`;
         
-        const safeDailyEl = document.getElementById('safeDailyLimit');
-        safeDailyEl.innerText = `₹${safeDaily.toLocaleString('en-IN')}`;
-        safeDailyEl.style.color = rem > 0 ? "var(--success)" : "var(--danger)";
-        document.getElementById('safeDailyLimitLabel').style.color = rem > 0 ? "var(--success)" : "var(--danger)";
+        const dailyLimitEl = document.getElementById('dailyLimit');
+        dailyLimitEl.innerText = `₹${dailyLimit.toLocaleString('en-IN')}`;
+        dailyLimitEl.style.color = "var(--text)";
+        
+        const dailyLimitLabel = document.getElementById('dailyLimitLabel');
+        dailyLimitLabel.innerText = "Daily Limit";
+        dailyLimitLabel.style.color = "var(--subtext)";
 
         const monthSaved = monthIncome - monthSpent;
         const savedMonthEl = document.getElementById('savedMonth');
         savedMonthEl.innerText = `₹${monthSaved.toLocaleString('en-IN')}`;
         savedMonthEl.style.color = monthSaved >= 0 ? "var(--success)" : "var(--danger)";
 
+        const rem = targetAmount - monthSpent;
         const mainDisplay = document.getElementById('targetDisplay');
         const subDisplay = document.getElementById('targetStatus');
         const cardLabel = document.getElementById('targetCardLabel');
