@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kite Tracker</title>
+    <title>Spent Tracker</title>
     <link rel="manifest" href="manifest.json">
     <style>
         :root {
@@ -220,6 +220,7 @@
     
     const defaultCategories = ["🍔 Food", "🚌 Transport", "🛍️ Shopping", "💡 Bills", "💊 Health", "📦 Other"];
     
+    // Kept internal key as 'kite_db' to prevent data loss
     let db = JSON.parse(localStorage.getItem('kite_db')) || { transactions: [], target: 0 };
     if (!db.categories) db.categories = [...defaultCategories];
     
@@ -388,9 +389,14 @@
         alert("Database reset successful.");
     }
 
-    // Upgraded Export Function with Excel XML Namespaces and strict styling
     function exportExcel() {
         const currentMonthId = getCurrentMonthId();
+        
+        // Generate formatted "2026-April" string
+        const [yyyy, mm] = currentMonthId.split('-');
+        const monthName = new Date(yyyy, parseInt(mm) - 1).toLocaleString('en-US', { month: 'long' });
+        const reportMonthStr = `${yyyy}-${monthName}`;
+
         const monthTx = db.transactions.filter(t => t.month === currentMonthId).sort((a,b) => b.id - a.id);
         
         let totalInc = 0, totalExp = 0;
@@ -416,7 +422,7 @@
             <body>
                 <table>
                     <tr>
-                        <td colspan="5" class="title-row">Kite Tracker Financial Report - ${currentMonthId}</td>
+                        <td colspan="5" class="title-row">Spent Tracker Financial Report - ${reportMonthStr}</td>
                     </tr>
                     <tr>
                         <td colspan="2" class="summary-row">Total Income: ₹${totalInc.toLocaleString('en-IN')}</td>
@@ -433,7 +439,12 @@
         `;
         
         monthTx.forEach(t => {
-            const date = new Date(t.timestamp).toLocaleDateString('en-GB');
+            // Generate formatted "14-April" string
+            const dObj = new Date(t.timestamp);
+            const dayStr = dObj.getDate().toString().padStart(2, '0');
+            const mStr = dObj.toLocaleString('en-US', { month: 'long' });
+            const date = `${dayStr}-${mStr}`;
+            
             const cat = t.category || '-';
             const isInc = t.type === 'income';
             const colorClass = isInc ? 'inc' : 'exp';
@@ -455,7 +466,7 @@
         const blob = new Blob([tableHTML], { type: "application/vnd.ms-excel" });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `KiteReport_${currentMonthId}.xls`;
+        a.download = `SpentTracker_Report_${reportMonthStr}.xls`;
         a.click();
     }
 
