@@ -389,6 +389,13 @@
 <div class="modal-overlay" id="addSavingsModal" onclick="closeModal(event, 'addSavingsModal')">
     <div class="modal-content" onclick="event.stopPropagation()"><button class="close-btn" onclick="closeModal(null, 'addSavingsModal', true)">×</button>
         <h2 id="savingsModalTitle" style="margin-bottom: 24px;">Add Savings</h2>
+        
+        <div class="label" style="margin-bottom: 10px; font-size: 11px;">Investment Timeline</div>
+        <div style="display: flex; gap: 10px; margin-bottom: 16px; background: var(--bg); padding: 4px; border-radius: 8px;">
+            <button class="chart-toggle active" id="savTimeNew" onclick="toggleSavTime('new')" style="border: none;">Bought Today</button>
+            <button class="chart-toggle" id="savTimeHistorical" onclick="toggleSavTime('historical')" style="border: none;">Already Owned</button>
+        </div>
+
         <input type="text" id="savName" placeholder="Instrument Name (e.g. Nifty 50)">
         
         <div id="npsAllocationSection" style="display: none; background: var(--bg); padding: 15px; border-radius: 16px; margin-bottom: 16px;">
@@ -411,11 +418,12 @@
         <div id="sipSection" style="display: flex; gap: 10px; margin-top: 16px;">
             <input type="number" id="savSipAmount" placeholder="Monthly SIP/Auto-Debit ₹" style="margin-bottom: 0; flex: 1;"><input type="number" id="savSipDate" placeholder="Date (1-31)" min="1" max="31" style="margin-bottom: 0; flex: 1;">
         </div>
-        
         <p id="sipDisclaimer" style="font-size: 11px; color: var(--subtext); margin-top: 8px; margin-bottom: 16px; font-weight: 500;">*Leave blank if no automated monthly investment.</p>
         
-        <div class="label" style="margin-top: 16px; margin-bottom: 5px; font-size: 11px;">Funded From</div>
-        <select id="savPaymentMethod"></select>
+        <div id="savFundingSection">
+            <div class="label" style="margin-top: 16px; margin-bottom: 5px; font-size: 11px;">Funded From</div>
+            <select id="savPaymentMethod"></select>
+        </div>
 
         <button class="btn-main" onclick="saveSavings()">Save Instrument</button>
         <button class="btn-warning" id="redeemSavBtn" onclick="redeemSavings()" style="display: none;">Liquidate & Redeem Asset</button>
@@ -477,7 +485,7 @@
     }
     
     let editingId = null; let editingCreditId = null; let editingLoanId = null; let editingSavingsId = null; let editingBankId = null;
-    let selectedSavingsType = ''; let selectedSavingsIcon = '';
+    let selectedSavingsType = ''; let selectedSavingsIcon = ''; let savIsHistorical = false;
     let activeCategoryFilter = 'All Expenses'; let currentChartView = 'day';
     const getCurrentMonthId = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
 
@@ -590,8 +598,9 @@
             }
         });
 
-        // Deduct asset investments from specific banks
+        // Deduct asset investments from specific banks (SKIP IF HISTORICAL)
         db.savings.forEach(s => {
+            if (s.isHistorical) return; // Do not deduct already owned assets from current balance
             const pm = s.paymentMethod || 'cash';
             if (pm.startsWith('bank_')) bankBalances[pm.split('_')[1]] = (bankBalances[pm.split('_')[1]] || 0) - s.invested;
             else cashWallet -= s.invested;
@@ -927,6 +936,13 @@
     // --- Dynamic Savings Modals ---
     function openSelectInstrumentModal() { document.getElementById('selectInstrumentModal').classList.add('active'); }
     
+    function toggleSavTime(type) {
+        savIsHistorical = (type === 'historical');
+        document.getElementById('savTimeNew').classList.toggle('active', !savIsHistorical);
+        document.getElementById('savTimeHistorical').classList.toggle('active', savIsHistorical);
+        document.getElementById('savFundingSection').style.display = savIsHistorical ? 'none' : 'block';
+    }
+
     function toggleSavingsFields(type) {
         const npsBlock = document.getElementById('npsAllocationSection');
         const fdBlock = document.getElementById('fdSpecificSection');
@@ -952,9 +968,14 @@
     }
 
     function openAddSavingsModal(type, icon) {
-        closeModal(null, 'selectInstrumentModal', true); editingSavingsId = null; selectedSavingsType = type; selectedSavingsIcon = icon;
-        document.getElementById('savingsModalTitle').innerText = `Add ${type}`; document.getElementById('savName').value = ''; document.getElementById('savInvested').value = '';
-        document.getElementById('savCurrent').value = ''; document.getElementById('savRate').value = ''; document.getElementById('savSipAmount').value = ''; document.getElementById('savSipDate').value = '';
+        closeModal(null, 'selectInstrumentModal', true); 
+        editingSavingsId = null; selectedSavingsType = type; selectedSavingsIcon = icon;
+        savIsHistorical = false; toggleSavTime('new');
+
+        document.getElementById('savingsModalTitle').innerText = `Add ${type}`;
+        document.getElementById('savName').value = ''; document.getElementById('savInvested').value = '';
+        document.getElementById('savCurrent').value = ''; document.getElementById('savRate').value = ''; 
+        document.getElementById('savSipAmount').value = ''; document.getElementById('savSipDate').value = '';
         document.getElementById('savPaymentMethod').value = 'cash';
         
         toggleSavingsFields(type);
@@ -970,8 +991,14 @@
     function editSavings(id) {
         editingSavingsId = id; const sav = db.savings.find(s => s.id === id); if(!sav) return;
         selectedSavingsType = sav.type; selectedSavingsIcon = sav.icon;
-        document.getElementById('savingsModalTitle').innerText = `Edit ${sav.type}`; document.getElementById('savName').value = sav.name; document.getElementById('savInvested').value = sav.invested;
-        document.getElementById('savCurrent').value = sav.current; document.getElementById('savRate').value = sav.rate || ''; document.getElementById('savSipAmount').value = sav.sipAmount || ''; document.getElementById('savSipDate').value = sav.sipDate || '';
+        
+        savIsHistorical = sav.isHistorical || false;
+        toggleSavTime(savIsHistorical ? 'historical' : 'new');
+
+        document.getElementById('savingsModalTitle').innerText = `Edit ${sav.type}`;
+        document.getElementById('savName').value = sav.name; document.getElementById('savInvested').value = sav.invested;
+        document.getElementById('savCurrent').value = sav.current; document.getElementById('savRate').value = sav.rate || ''; 
+        document.getElementById('savSipAmount').value = sav.sipAmount || ''; document.getElementById('savSipDate').value = sav.sipDate || '';
         document.getElementById('savPaymentMethod').value = sav.paymentMethod || 'cash';
         
         toggleSavingsFields(sav.type);
@@ -1009,7 +1036,8 @@
         
         if (selectedSavingsType === 'NPS') {
             const e = Number(document.getElementById('npsE').value); const c = Number(document.getElementById('npsC').value); const g = Number(document.getElementById('npsG').value);
-            if (e + c + g !== 100) return alert("NPS Allocations must equal 100%."); allocations = { e, c, g };
+            if (e + c + g !== 100) return alert("NPS Allocations must total exactly 100%. Check your E, C, and G values.");
+            allocations = { e, c, g };
         }
 
         if (selectedSavingsType === 'Fixed Deposit') {
@@ -1020,10 +1048,11 @@
 
         if (editingSavingsId) {
             const index = db.savings.findIndex(s => s.id === editingSavingsId); 
-            db.savings[index] = { id: editingSavingsId, type: selectedSavingsType, icon: selectedSavingsIcon, name, invested, current, rate, allocations, sipAmount, sipDate, fdStartDate, fdTenure, paymentMethod };
+            db.savings[index] = { id: editingSavingsId, type: selectedSavingsType, icon: selectedSavingsIcon, name, invested, current, rate, allocations, sipAmount, sipDate, fdStartDate, fdTenure, paymentMethod, isHistorical: savIsHistorical };
         } else { 
-            db.savings.push({ id: Date.now(), type: selectedSavingsType, icon: selectedSavingsIcon, name, invested, current, rate, allocations, sipAmount, sipDate, fdStartDate, fdTenure, paymentMethod }); 
+            db.savings.push({ id: Date.now(), type: selectedSavingsType, icon: selectedSavingsIcon, name, invested, current, rate, allocations, sipAmount, sipDate, fdStartDate, fdTenure, paymentMethod, isHistorical: savIsHistorical }); 
         }
+        
         saveDb(); closeModal(null, 'addSavingsModal', true); renderSavingsTab(); calculateStats();
     }
 
@@ -1099,6 +1128,7 @@
         bankContainer.innerHTML = bankHtml;
 
         let totalInvested = 0; let totalCurrent = 0; const container = document.getElementById('savingsContainer');
+        
         if (db.savings.length === 0) {
             container.innerHTML = `
                 <div class="empty-state-card">
@@ -1119,71 +1149,155 @@
                 const absReturn = actualCurrent - s.invested; const pctReturn = ((absReturn / s.invested) * 100).toFixed(1);
                 const isPositive = absReturn >= 0; const pillClass = isPositive ? 'pos' : 'neg'; const sign = isPositive ? '+' : '';
                 const rateText = s.rate ? `<span style="font-size: 11px; color: var(--subtext); margin-left: 5px;">(${s.rate}% APY)</span>` : '';
-                let npsBadge = ''; if (s.type === 'NPS' && s.allocations) npsBadge = `<div style="font-size: 11px; color: var(--subtext); margin-top: 4px; font-weight: 600;">E: ${s.allocations.e}% • C: ${s.allocations.c}% • G: ${s.allocations.g}%</div>`;
-                let sipBadge = ''; if (s.sipAmount && s.sipDate) sipBadge = `<div style="font-size: 11px; color: var(--accent); margin-top: 4px; font-weight: 700;">🔄 SIP: ₹${s.sipAmount.toLocaleString('en-IN')} on Day ${s.sipDate}</div>`;
-                return `<div class="expense-item" onclick="editSavings(${s.id})">
-                    <div class="expense-left"><div class="icon-box">${s.icon}</div>
-                        <div><div class="title" style="font-size: 15px;">${s.name} ${rateText}</div><div class="date">Inv: ₹${s.invested.toLocaleString('en-IN')}</div>${npsBadge}${sipBadge}${fdBadge}</div></div>
-                    <div style="text-align: right;"><div class="amount">₹${actualCurrent.toLocaleString('en-IN')}</div><div class="return-pill ${pillClass}">${sign}${pctReturn}%</div></div>
+                
+                let npsBadge = '';
+                if (s.type === 'NPS' && s.allocations) {
+                    npsBadge = `<div style="font-size: 11px; color: var(--subtext); margin-top: 4px; font-weight: 600;">E: ${s.allocations.e}% • C: ${s.allocations.c}% • G: ${s.allocations.g}%</div>`;
+                }
+
+                let sipBadge = '';
+                if (s.sipAmount && s.sipDate) {
+                    sipBadge = `<div style="font-size: 11px; color: var(--accent); margin-top: 4px; font-weight: 700;">🔄 SIP: ₹${s.sipAmount.toLocaleString('en-IN')} on Day ${s.sipDate}</div>`;
+                }
+
+                return `
+                <div class="expense-item" onclick="editSavings(${s.id})">
+                    <div class="expense-left">
+                        <div class="icon-box">${s.icon}</div>
+                        <div>
+                            <div class="title" style="font-size: 15px;">${s.name} ${rateText}</div>
+                            <div class="date">Inv: ₹${s.invested.toLocaleString('en-IN')}</div>
+                            ${npsBadge}
+                            ${sipBadge}
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div class="amount">₹${actualCurrent.toLocaleString('en-IN')}</div>
+                        <div class="return-pill ${pillClass}">${sign}${pctReturn}%</div>
+                    </div>
                 </div>`;
             }).join('');
         }
-        const topVal = document.getElementById('totalSavingsValue'); const topRet = document.getElementById('totalSavingsReturn');
+
+        const topVal = document.getElementById('totalSavingsValue');
+        const topRet = document.getElementById('totalSavingsReturn');
+        
         topVal.innerText = `₹${totalCurrent.toLocaleString('en-IN')}`;
+        
         if (totalInvested > 0) {
-            const overallAbs = totalCurrent - totalInvested; const overallPct = ((overallAbs / totalInvested) * 100).toFixed(1);
-            const isPos = overallAbs >= 0; topRet.style.color = isPos ? 'var(--success)' : 'var(--danger)'; topRet.innerText = `${isPos ? '+' : ''}₹${overallAbs.toLocaleString('en-IN')} (${isPos ? '+' : ''}${overallPct}%) All Time`;
-        } else { topRet.innerText = ''; }
+            const overallAbs = totalCurrent - totalInvested;
+            const overallPct = ((overallAbs / totalInvested) * 100).toFixed(1);
+            const isPos = overallAbs >= 0;
+            topRet.style.color = isPos ? 'var(--success)' : 'var(--danger)';
+            topRet.innerText = `${isPos ? '+' : ''}₹${overallAbs.toLocaleString('en-IN')} (${isPos ? '+' : ''}${overallPct}%) All Time`;
+        } else {
+            topRet.innerText = '';
+        }
     }
 
-    function openWealthModal() { calculateStats(); document.getElementById('wealthModal').classList.add('active'); }
-    function exportExcel() { 
-        const currentMonthId = getCurrentMonthId(); const currentMonthName = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    // --- Analytics & Export ---
+    function openWealthModal() {
+        calculateStats(); 
+        document.getElementById('wealthModal').classList.add('active');
+    }
+
+    function exportExcel() {
+        const currentMonthId = getCurrentMonthId();
+        const currentMonthName = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
         let monthIncome = 0; let monthSpent = 0; let catTotals = {};
+        
         let reportTx = db.transactions.filter(t => t.month === currentMonthId && t.type !== 'repayment').sort((a,b) => b.id - a.id);
         let repaymentTx = db.transactions.filter(t => t.month === currentMonthId && t.type === 'repayment').sort((a,b) => b.id - a.id);
+
         reportTx.forEach(t => {
             if (t.type === 'income') monthIncome += t.amount;
-            if (t.type === 'expense') { monthSpent += t.amount; let catName = t.category ? t.category : 'Uncategorized'; catTotals[catName] = (catTotals[catName] || 0) + t.amount; }
+            if (t.type === 'expense') {
+                monthSpent += t.amount;
+                let catName = 'Uncategorized';
+                if (t.category) { const parts = t.category.split(' '); catName = parts.length > 1 ? parts.slice(1).join(' ') : t.category; }
+                catTotals[catName] = (catTotals[catName] || 0) + t.amount;
+            }
         });
         let netSavings = monthIncome - monthSpent;
-        let tableHTML = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body style="font-family: -apple-system, Arial, sans-serif;">
+
+        let tableHTML = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+            <head><meta charset="UTF-8"></head><body style="font-family: -apple-system, Arial, sans-serif;">
             <h2 style="color: #000000; text-align: center; margin-bottom: 20px;">Kite Tracker - Financial Report (${currentMonthName})</h2>
-            <table border="1" style="border-collapse: collapse; width: 100%; margin-bottom: 30px;"><tr style="background-color: #191919; color: #ffffff;"><th style="padding: 12px;">Total Income</th><th style="padding: 12px;">Total Expenses</th><th style="padding: 12px;">Net Savings</th></tr>
-                <tr style="text-align: center; font-weight: bold; font-size: 16px;"><td style="padding: 15px; color: #34c759;">₹${monthIncome.toLocaleString('en-IN')}</td><td style="padding: 15px; color: #ff3b30;">₹${monthSpent.toLocaleString('en-IN')}</td><td style="padding: 15px;">₹${netSavings.toLocaleString('en-IN')}</td></tr></table>
-            <h3 style="color: #333333;">Expense Breakdown by Category</h3><table border="1" style="border-collapse: collapse; width: 100%; margin-bottom: 30px;"><tr style="background-color: #f2f2f6;"><th style="padding: 10px; text-align: left;">Category</th><th style="padding: 10px; text-align: left;">Amount Spent</th></tr>`;
+            <table border="1" style="border-collapse: collapse; width: 100%; margin-bottom: 30px;">
+                <tr style="background-color: #191919; color: #ffffff;"><th style="padding: 12px;">Total Income</th><th style="padding: 12px;">Total Expenses</th><th style="padding: 12px;">Net Savings</th></tr>
+                <tr style="text-align: center; font-weight: bold; font-size: 16px;">
+                    <td style="padding: 15px; color: #34c759;">₹${monthIncome.toLocaleString('en-IN')}</td>
+                    <td style="padding: 15px; color: #ff3b30;">₹${monthSpent.toLocaleString('en-IN')}</td>
+                    <td style="padding: 15px; color: ${netSavings >= 0 ? '#34c759' : '#ff3b30'};">₹${netSavings.toLocaleString('en-IN')}</td>
+                </tr>
+            </table>
+            <h3 style="color: #333333; margin-bottom: 10px;">Expense Breakdown by Category</h3>
+            <table border="1" style="border-collapse: collapse; width: 100%; margin-bottom: 30px;">
+                <tr style="background-color: #f2f2f6;"><th style="padding: 10px; text-align: left;">Category</th><th style="padding: 10px; text-align: left;">Amount Spent</th></tr>
+        `;
         for (const [cat, total] of Object.entries(catTotals)) { tableHTML += `<tr><td style="padding: 10px;">${cat}</td><td style="padding: 10px; color: #ff3b30; font-weight: bold;">₹${total.toLocaleString('en-IN')}</td></tr>`; }
-        tableHTML += `</table><h3 style="color: #333333;">Full Transaction Ledger</h3><table border="1" style="border-collapse: collapse; width: 100%;">
-                <thead><tr style="background-color: #191919; color: #ffffff; text-align: left;"><th style="padding: 12px;">Date</th><th style="padding: 12px;">Type</th><th style="padding: 12px;">Category</th><th style="padding: 12px;">Payment Method / Target</th><th style="padding: 12px;">Title / Note</th><th style="padding: 12px;">Amount (INR)</th></tr></thead><tbody>`;
+        
+        tableHTML += `</table><h3 style="color: #333333; margin-bottom: 10px;">Full Transaction Ledger</h3>
+            <table border="1" style="border-collapse: collapse; width: 100%;">
+                <thead><tr style="background-color: #191919; color: #ffffff; text-align: left;">
+                    <th style="padding: 12px; border: 1px solid #d1d1d6;">Date</th><th style="padding: 12px; border: 1px solid #d1d1d6;">Type</th>
+                    <th style="padding: 12px; border: 1px solid #d1d1d6;">Category</th><th style="padding: 12px; border: 1px solid #d1d1d6;">Payment Method / Target</th>
+                    <th style="padding: 12px; border: 1px solid #d1d1d6;">Title / Note</th><th style="padding: 12px; border: 1px solid #d1d1d6;">Amount (INR)</th>
+                </tr></thead><tbody>
+        `;
+        
         const allTx = [...reportTx, ...repaymentTx].sort((a,b) => b.id - a.id);
+
         allTx.forEach((t, index) => {
             const date = new Date(t.timestamp).toLocaleDateString('en-GB');
-            let payStr = 'Cash Wallet';
-            if (t.paymentMethod && t.paymentMethod.startsWith('bank_')) {
-                const b = db.bankAccounts.find(x => x.id == t.paymentMethod.split('_')[1]); if (b) payStr = b.name;
-            } else if (t.type === 'expense' && t.paymentMethod && t.paymentMethod.startsWith('cc_')) {
-                const card = db.creditCards.find(c => c.id === Number(t.paymentMethod.split('_')[1])); if (card) payStr = card.name;
-            } 
+            let cleanCat = '-';
+            if (t.category && t.type === 'expense') { const parts = t.category.split(' '); cleanCat = parts.length > 1 ? parts.slice(1).join(' ') : t.category; }
             
-            if (t.type === 'repayment' && t.repaymentTarget) {
+            let payStr = 'Cash/Bank';
+            if (t.type === 'expense' && t.paymentMethod && t.paymentMethod.startsWith('cc_')) {
+                const cardId = Number(t.paymentMethod.split('_')[1]);
+                const card = db.creditCards.find(c => c.id === cardId);
+                if (card) payStr = card.name;
+            } else if (t.type === 'repayment' && t.repaymentTarget) {
                 const parts = t.repaymentTarget.split('_');
-                let target = '';
-                if (parts[0] === 'cc') { const c = db.creditCards.find(x => x.id == parts[1]); if (c) target = c.name; } 
-                else if (parts[0] === 'loan') { const l = db.loans.find(x => x.id == parts[1]); if (l) target = l.name; }
-                payStr = `${payStr} -> ${target}`;
+                if (parts[0] === 'cc') {
+                    const c = db.creditCards.find(x => x.id == parts[1]);
+                    if (c) payStr = 'Repayment: ' + c.name;
+                } else if (parts[0] === 'loan') {
+                    const l = db.loans.find(x => x.id == parts[1]);
+                    if (l) payStr = 'Repayment: ' + l.name;
+                }
             }
-            let color = '#000'; let sign = ''; if (t.type === 'income') { color = '#34c759'; sign = '+'; } if (t.type === 'expense') { color = '#ff3b30'; sign = '-'; } if (t.type === 'repayment') { color = '#ff9500'; sign = '-'; }
-            tableHTML += `<tr><td style="padding: 10px;">${date}</td><td style="padding: 10px; text-transform: capitalize;">${t.type}</td><td style="padding: 10px;">${t.category || '-'}</td><td style="padding: 10px;">${payStr}</td><td style="padding: 10px;">${t.title}</td><td style="padding: 10px; color: ${color}; font-weight: bold;">${sign}₹${t.amount.toLocaleString('en-IN')}</td></tr>`;
+
+            let color = '#000';
+            let sign = '';
+            if (t.type === 'income') { color = '#34c759'; sign = '+'; }
+            if (t.type === 'expense') { color = '#ff3b30'; sign = '-'; }
+            if (t.type === 'repayment') { color = '#ff9500'; sign = '-'; }
+
+            const bgStr = index % 2 === 0 ? 'background-color: #ffffff;' : 'background-color: #f9f9f9;';
+            tableHTML += `<tr style="${bgStr}">
+                <td style="padding: 10px; border: 1px solid #d1d1d6;">${date}</td><td style="padding: 10px; border: 1px solid #d1d1d6; text-transform: capitalize;">${t.type}</td>
+                <td style="padding: 10px; border: 1px solid #d1d1d6;">${cleanCat}</td>
+                <td style="padding: 10px; border: 1px solid #d1d1d6;">${payStr}</td>
+                <td style="padding: 10px; border: 1px solid #d1d1d6;">${t.title}</td>
+                <td style="padding: 10px; border: 1px solid #d1d1d6; color: ${color}; font-weight: bold;">${sign}₹${t.amount.toLocaleString('en-IN')}</td>
+            </tr>`;
         });
         tableHTML += `</tbody></table></body></html>`;
-        const blob = new Blob([tableHTML], { type: "application/vnd.ms-excel" }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `KiteReport_${getCurrentMonthId()}.xls`; a.click();
+        const blob = new Blob([tableHTML], { type: "application/vnd.ms-excel" });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `KiteReport_${getCurrentMonthId()}.xls`; a.click();
     }
 
     function saveDb() { localStorage.setItem('kite_db', JSON.stringify(db)); }
+
     function calculateSIP(monthlyInvestment, years, annualRate) {
         if (monthlyInvestment <= 0) return 0;
-        const monthlyRate = annualRate / 12 / 100; const months = years * 12;
-        return Math.round(monthlyInvestment * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate) * (1 + monthlyRate));
+        const monthlyRate = annualRate / 12 / 100;
+        const months = years * 12;
+        const futureValue = monthlyInvestment * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate) * (1 + monthlyRate);
+        return Math.round(futureValue);
     }
 
     function calculateStats() {
@@ -1191,20 +1305,23 @@
         const now = new Date(); const currentYear = now.getFullYear();
         const daysPassed = now.getDate(); const daysInMonth = new Date(currentYear, now.getMonth() + 1, 0).getDate();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-        const startOfWeek = new Date(todayStart); startOfWeek.setDate(now.getDate() - now.getDay()); const weekStartMs = startOfWeek.getTime();
+        const startOfWeek = new Date(todayStart); startOfWeek.setDate(now.getDate() - now.getDay()); 
+        const weekStartMs = startOfWeek.getTime();
         const currentMonthName = now.toLocaleString('en-US', { month: 'long' });
 
         // --- NET WORTH ENGINE WITH LIQUID CASH LOGIC ---
         let allTimeIncome = 0; let allTimeCashSpent = 0; let allTimeRepayments = 0;
         db.transactions.forEach(t => {
             if (t.type === 'income') allTimeIncome += t.amount;
-            if (t.type === 'expense' && t.paymentMethod === 'Cash/Bank') allTimeCashSpent += t.amount;
+            if (t.type === 'expense' && t.paymentMethod && t.paymentMethod.startsWith('bank_')) allTimeCashSpent += t.amount;
+            if (t.type === 'expense' && (!t.paymentMethod || t.paymentMethod === 'cash')) allTimeCashSpent += t.amount;
             if (t.type === 'repayment') allTimeRepayments += t.amount;
         });
 
-        let totalInvestedInAssets = 0; let totalCurrentAssets = 0;
+        let totalInvestedInAssetsForCashFlow = 0; let totalCurrentAssets = 0;
         db.savings.forEach(s => {
-            totalInvestedInAssets += s.invested;
+            if (!s.isHistorical) totalInvestedInAssetsForCashFlow += s.invested;
+            
             let val = s.current || 0;
             if (s.type === 'Fixed Deposit' && s.fdStartDate) {
                 const start = new Date(s.fdStartDate).getTime();
@@ -1214,7 +1331,10 @@
             totalCurrentAssets += val;
         });
 
-        let liquidCash = (db.startingBankBalance || 0) + allTimeIncome - allTimeCashSpent - allTimeRepayments - totalInvestedInAssets;
+        let startingBankSums = 0;
+        db.bankAccounts.forEach(b => startingBankSums += (b.startingBalance || 0));
+
+        let liquidCash = startingBankSums + allTimeIncome - allTimeCashSpent - allTimeRepayments - totalInvestedInAssetsForCashFlow;
 
         const balances = getDerivedBalances();
         let totalDebt = 0;
