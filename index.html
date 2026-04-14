@@ -383,7 +383,6 @@
         alert("Database reset successful.");
     }
 
-    // UPGRADED PROFESSIONAL EXCEL EXPORT
     function exportExcel() {
         const currentMonthId = getCurrentMonthId();
         const currentMonthName = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
@@ -392,15 +391,19 @@
         let monthSpent = 0;
         let catTotals = {};
         
-        // Filter strictly to current month for the report
         let reportTx = db.transactions.filter(t => t.month === currentMonthId).sort((a,b) => b.id - a.id);
 
         reportTx.forEach(t => {
             if (t.type === 'income') monthIncome += t.amount;
             if (t.type === 'expense') {
                 monthSpent += t.amount;
-                const cat = t.category || 'Uncategorized';
-                catTotals[cat] = (catTotals[cat] || 0) + t.amount;
+                // SANITIZATION: Strip emoji for Excel compatibility
+                let catName = 'Uncategorized';
+                if (t.category) {
+                    const parts = t.category.split(' ');
+                    catName = parts.length > 1 ? parts.slice(1).join(' ') : t.category;
+                }
+                catTotals[catName] = (catTotals[catName] || 0) + t.amount;
             }
         });
 
@@ -457,7 +460,14 @@
         
         reportTx.forEach((t, index) => {
             const date = new Date(t.timestamp).toLocaleDateString('en-GB');
-            const cat = t.category || '-';
+            
+            // SANITIZATION: Strip emoji from individual transaction lines
+            let cleanCat = '-';
+            if (t.category && t.type === 'expense') {
+                const parts = t.category.split(' ');
+                cleanCat = parts.length > 1 ? parts.slice(1).join(' ') : t.category;
+            }
+
             const color = t.type === 'income' ? '#34c759' : '#ff3b30';
             const sign = t.type === 'income' ? '+' : '-';
             const bgStr = index % 2 === 0 ? 'background-color: #ffffff;' : 'background-color: #f9f9f9;';
@@ -466,7 +476,7 @@
                 <tr style="${bgStr}">
                     <td style="padding: 10px; border: 1px solid #d1d1d6;">${date}</td>
                     <td style="padding: 10px; border: 1px solid #d1d1d6; text-transform: capitalize;">${t.type}</td>
-                    <td style="padding: 10px; border: 1px solid #d1d1d6;">${cat}</td>
+                    <td style="padding: 10px; border: 1px solid #d1d1d6;">${cleanCat}</td>
                     <td style="padding: 10px; border: 1px solid #d1d1d6;">${t.title}</td>
                     <td style="padding: 10px; border: 1px solid #d1d1d6; color: ${color}; font-weight: bold;">${sign}₹${t.amount.toLocaleString('en-IN')}</td>
                 </tr>
@@ -653,6 +663,7 @@
         document.querySelectorAll('.chart-toggle').forEach(el => el.classList.remove('active'));
         document.getElementById('toggle-' + currentChartView).classList.add('active');
 
+        // Widgets Update
         document.getElementById('spendToday').innerText = `₹${todaySpent.toLocaleString('en-IN')}`;
         document.getElementById('spendWeek').innerText = `₹${weekSpent.toLocaleString('en-IN')}`;
         document.getElementById('spendMonthWidget').innerText = `₹${monthSpent.toLocaleString('en-IN')}`;
