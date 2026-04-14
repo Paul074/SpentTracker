@@ -440,10 +440,8 @@
         const weekStartMs = startOfWeek.getTime();
         const currentYear = now.getFullYear();
 
-        // Dynamically fetch current month name
         const currentMonthName = now.toLocaleString('en-US', { month: 'long' });
 
-        // Update Dynamic DOM Labels
         document.getElementById('labelSpendMonth').innerText = `Spent in ${currentMonthName}`;
         document.getElementById('labelIncomeMonth').innerText = `${currentMonthName} Income`;
         document.getElementById('labelSavedMonth').innerText = `Saved in ${currentMonthName}`;
@@ -540,9 +538,17 @@
             homeTargetStatus.style.display = "none";
         }
 
+        // NEW: CHART ANCHOR REFERENCE LOGIC
         let chartData = [];
         let chartLabels = [];
-        let maxDaily = 1;
+        let referenceMax = 100; // Minimum visual threshold baseline
+
+        if (targetAmount > 0) {
+            if (currentChartView === 'day') referenceMax = targetAmount / 30;
+            else if (currentChartView === 'week') referenceMax = targetAmount / 4;
+            else if (currentChartView === 'month') referenceMax = targetAmount;
+            else if (currentChartView === 'year') referenceMax = targetAmount * 12;
+        }
 
         if (currentChartView === 'day') {
             chartLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -580,7 +586,9 @@
             });
         }
 
-        maxDaily = Math.max(...chartData, 1);
+        // Sets ceiling to the target reference, OR the actual highest spend if you overshoot
+        let maxDaily = Math.max(...chartData, referenceMax);
+        
         let chartHTML = '';
         const barColor = (targetAmount > 0 && monthSpent > targetAmount) ? "var(--danger)" : "var(--accent)";
         for(let i=0; i<chartLabels.length; i++) {
