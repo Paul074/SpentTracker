@@ -254,14 +254,19 @@
     <div class="modal-content" onclick="event.stopPropagation()">
         <button class="close-btn" onclick="closeModal(null, 'inputModal', true)">×</button>
         <h2 id="modalTitle" style="margin-bottom: 24px;">New Entry</h2>
+        
         <select id="entryType" onchange="toggleFields()">
             <option value="expense">Expense</option>
             <option value="income">Income</option>
             <option value="target">Set Monthly Target</option>
         </select>
+
+        <select id="paymentMethod" style="display: none;"></select>
+
         <input type="number" id="amount" placeholder="Amount ₹">
         <input type="text" id="title" placeholder="Title or Note">
         <select id="expCategory"></select>
+        
         <button class="btn-main" onclick="saveEntry()">Save</button>
         <button class="btn-danger" id="deleteBtn" onclick="deleteEntry()">Delete Entry</button>
     </div>
@@ -409,6 +414,7 @@
 
     function init() {
         populateCategorySelects();
+        populatePaymentMethods();
         calculateStats();
         renderCreditTab();
         renderSavingsTab();
@@ -420,7 +426,6 @@
         document.getElementById(tabId).classList.add('active');
         el.classList.add('active');
         
-        // Dynamic FAB visibility
         const fab = document.getElementById('mainFab');
         if (tabId === 'home' || tabId === 'summary') {
             fab.style.display = 'flex';
@@ -436,12 +441,22 @@
     function setChartView(view) { currentChartView = view; calculateStats(); }
     function closeModal(e, modalId, force = false) { if (force || e.target === document.getElementById(modalId)) document.getElementById(modalId).classList.remove('active'); }
 
-    // --- Core Tracker ---
+    // --- Core Tracker Logic ---
+    function populatePaymentMethods() {
+        const select = document.getElementById('paymentMethod');
+        let html = `<option value="Cash/Bank">Cash / Bank Account</option>`;
+        db.creditCards.forEach(c => {
+            html += `<option value="cc_${c.id}">💳 ${c.name}</option>`;
+        });
+        select.innerHTML = html;
+    }
+
     function openInputModal() {
         editingId = null;
         document.getElementById('modalTitle').innerText = "New Entry";
         document.getElementById('amount').value = '';
         document.getElementById('title').value = '';
+        document.getElementById('paymentMethod').value = 'Cash/Bank';
         document.getElementById('deleteBtn').style.display = 'none';
         document.getElementById('entryType').disabled = false;
         document.getElementById('inputModal').classList.add('active');
@@ -458,15 +473,22 @@
         toggleFields();
         document.getElementById('amount').value = tx.amount;
         document.getElementById('title').value = tx.title;
-        if(tx.type === 'expense') document.getElementById('expCategory').value = tx.category || '📦 Other';
+        
+        if(tx.type === 'expense') {
+            document.getElementById('expCategory').value = tx.category || '📦 Other';
+            document.getElementById('paymentMethod').value = tx.paymentMethod || 'Cash/Bank';
+        }
+        
         document.getElementById('deleteBtn').style.display = 'block';
         document.getElementById('inputModal').classList.add('active');
     }
 
     function openSettings() { renderCategorySettings(); document.getElementById('settingsModal').classList.add('active'); }
+    
     function toggleFields() {
         const type = document.getElementById('entryType').value;
         document.getElementById('expCategory').style.display = type === 'expense' ? 'block' : 'none';
+        document.getElementById('paymentMethod').style.display = type === 'expense' ? 'block' : 'none';
         document.getElementById('title').style.display = type === 'target' ? 'none' : 'block';
     }
 
@@ -499,31 +521,78 @@
         const type = document.getElementById('entryType').value;
         const amount = Number(document.getElementById('amount').value);
         if (!amount) return alert("Enter an amount.");
+        
         if (type === 'target') {
             db.target = amount;
         } else {
             const title = document.getElementById('title').value || type;
             const category = type === 'expense' ? document.getElementById('expCategory').value : '';
+            const paymentMethod = type === 'expense' ? document.getElementById('paymentMethod').value : null;
+            
             if (editingId) {
                 const index = db.transactions.findIndex(t => t.id === editingId);
-                db.transactions[index].amount = amount; db.transactions[index].title = title; db.transactions[index].category = category;
+                const oldTx = db.transactions[index];
+                
+                // Revert old CC utilization if applicable
+                if (oldTx.type === 'expense' && oldTx.paymentMethod && oldTx.paymentMethod.startsWith('cc_')) {
+                    const oldCardId = Number(oldTx.paymentMethod.split('_')[1]);
+                    const cardIndex = db.creditCards.findIndex(c => c.id === oldCardId);
+                    if(cardIndex > -1) db.creditCards[cardIndex].utilized = Math.max(0, db.creditCards[cardIndex].utilized - oldTx.amount);
+                }
+                
+                // Apply new CC utilization if applicable
+                if (type === 'expense' && paymentMethod && paymentMethod.startsWith('cc_')) {
+                    const newCardId = Number(paymentMethod.split('_')[1]);
+                    const cardIndex = db.creditCards.findIndex(c => c.id === newCardId);
+                    if(cardIndex > -1) db.creditCards[cardIndex].utilized += amount;
+                }
+
+                db.transactions[index].amount = amount; 
+                db.transactions[index].title = title; 
+                db.transactions[index].category = category;
+                db.transactions[index].paymentMethod = paymentMethod;
             } else {
-                db.transactions.push({ id: Date.now(), type: type, amount: amount, title: title, category: category, month: getCurrentMonthId(), timestamp: new Date().toISOString() });
+                // Apply CC utilization on new expense
+                if (type === 'expense' && paymentMethod && paymentMethod.startsWith('cc_')) {
+                    const cardId = Number(paymentMethod.split('_')[1]);
+                    const cardIndex = db.creditCards.findIndex(c => c.id === cardId);
+                    if(cardIndex > -1) db.creditCards[cardIndex].utilized += amount;
+                }
+
+                db.transactions.push({ 
+                    id: Date.now(), 
+                    type: type, 
+                    amount: amount, 
+                    title: title, 
+                    category: category, 
+                    paymentMethod: paymentMethod,
+                    month: getCurrentMonthId(), 
+                    timestamp: new Date().toISOString() 
+                });
             }
         }
-        saveDb(); closeModal(null, 'inputModal', true); calculateStats();
+        saveDb(); closeModal(null, 'inputModal', true); calculateStats(); renderCreditTab();
     }
 
     function deleteEntry() {
         if(!confirm("Permanently delete this entry?")) return;
+        const tx = db.transactions.find(t => t.id === editingId);
+        
+        // Reverse CC utilization if applicable
+        if (tx && tx.type === 'expense' && tx.paymentMethod && tx.paymentMethod.startsWith('cc_')) {
+            const cardId = Number(tx.paymentMethod.split('_')[1]);
+            const cardIndex = db.creditCards.findIndex(c => c.id === cardId);
+            if(cardIndex > -1) db.creditCards[cardIndex].utilized = Math.max(0, db.creditCards[cardIndex].utilized - tx.amount);
+        }
+
         db.transactions = db.transactions.filter(t => t.id !== editingId);
-        saveDb(); closeModal(null, 'inputModal', true); calculateStats();
+        saveDb(); closeModal(null, 'inputModal', true); calculateStats(); renderCreditTab();
     }
 
     function resetDatabase() {
         if(!confirm("⚠️ DANGER: This will permanently delete ALL data (Transactions, Cards, Loans, Savings). Are you absolutely sure?")) return;
         db = { transactions: [], categories: [...defaultCategories], target: 0, creditCards: [], loans: [], savings: [] };
-        saveDb(); activeCategoryFilter = 'All Expenses'; populateCategorySelects(); calculateStats(); renderCreditTab(); renderSavingsTab();
+        saveDb(); activeCategoryFilter = 'All Expenses'; populateCategorySelects(); populatePaymentMethods(); calculateStats(); renderCreditTab(); renderSavingsTab();
         alert("Database reset successful.");
     }
 
@@ -533,23 +602,27 @@
         document.getElementById('ccName').value = ''; document.getElementById('ccLimit').value = ''; document.getElementById('ccUtilized').value = '';
         document.getElementById('deleteCardBtn').style.display = 'none'; document.getElementById('addCardModal').classList.add('active');
     }
+    
     function editCreditCard(id) {
         editingCreditId = id; const card = db.creditCards.find(c => c.id === id); if(!card) return;
         document.getElementById('cardModalTitle').innerText = "Edit Credit Card";
         document.getElementById('ccName').value = card.name; document.getElementById('ccLimit').value = card.limit; document.getElementById('ccUtilized').value = card.utilized;
         document.getElementById('deleteCardBtn').style.display = 'block'; document.getElementById('addCardModal').classList.add('active');
     }
+    
     function saveCreditCard() {
         const name = document.getElementById('ccName').value.trim(); const limit = Number(document.getElementById('ccLimit').value); const utilized = Number(document.getElementById('ccUtilized').value) || 0;
         if (!name || !limit) return alert("Card Name and Limit are required."); if (utilized > limit) return alert("Utilized amount cannot exceed Total Limit.");
         if (editingCreditId) {
             const index = db.creditCards.findIndex(c => c.id === editingCreditId); db.creditCards[index] = { id: editingCreditId, name, limit, utilized };
         } else { db.creditCards.push({ id: Date.now(), name, limit, utilized }); }
-        saveDb(); closeModal(null, 'addCardModal', true); renderCreditTab();
+        saveDb(); populatePaymentMethods(); closeModal(null, 'addCardModal', true); renderCreditTab();
     }
+    
     function deleteCreditCard() {
-        if(!confirm("Remove this credit card?")) return; db.creditCards = db.creditCards.filter(c => c.id !== editingCreditId);
-        saveDb(); closeModal(null, 'addCardModal', true); renderCreditTab();
+        if(!confirm("Remove this credit card? Current transactions linked to this card will be orphaned.")) return; 
+        db.creditCards = db.creditCards.filter(c => c.id !== editingCreditId);
+        saveDb(); populatePaymentMethods(); closeModal(null, 'addCardModal', true); renderCreditTab();
     }
 
     function openAddLoanModal() {
@@ -557,12 +630,14 @@
         document.getElementById('loanName').value = ''; document.getElementById('loanPrincipal').value = ''; document.getElementById('loanInterest').value = ''; document.getElementById('loanTenure').value = '';
         document.getElementById('deleteLoanBtn').style.display = 'none'; document.getElementById('addLoanModal').classList.add('active');
     }
+    
     function editLoan(id) {
         editingLoanId = id; const loan = db.loans.find(l => l.id === id); if(!loan) return;
         document.getElementById('loanModalTitle').innerText = "Edit Loan";
         document.getElementById('loanName').value = loan.name; document.getElementById('loanPrincipal').value = loan.principal; document.getElementById('loanInterest').value = loan.rate; document.getElementById('loanTenure').value = loan.tenure;
         document.getElementById('deleteLoanBtn').style.display = 'block'; document.getElementById('addLoanModal').classList.add('active');
     }
+    
     function saveLoan() {
         const name = document.getElementById('loanName').value.trim(); const principal = Number(document.getElementById('loanPrincipal').value);
         const rate = Number(document.getElementById('loanInterest').value); const tenure = Number(document.getElementById('loanTenure').value);
@@ -573,6 +648,7 @@
         } else { db.loans.push({ id: Date.now(), name, principal, rate, tenure, emi }); }
         saveDb(); closeModal(null, 'addLoanModal', true); renderCreditTab();
     }
+    
     function deleteLoan() {
         if(!confirm("Remove this loan?")) return; db.loans = db.loans.filter(l => l.id !== editingLoanId);
         saveDb(); closeModal(null, 'addLoanModal', true); renderCreditTab();
@@ -605,7 +681,7 @@
         }
     }
 
-    // --- NEW: Savings Tab & SIP Integration ---
+    // --- Savings Tab & NPS Allocation ---
     function openSelectInstrumentModal() {
         document.getElementById('selectInstrumentModal').classList.add('active');
     }
@@ -777,7 +853,7 @@
         }
     }
 
-    // --- Analytics ---
+    // --- Analytics & Export ---
     function openWealthModal() {
         calculateStats(); 
         document.getElementById('wealthModal').classList.add('active');
@@ -821,19 +897,29 @@
             <table border="1" style="border-collapse: collapse; width: 100%;">
                 <thead><tr style="background-color: #191919; color: #ffffff; text-align: left;">
                     <th style="padding: 12px; border: 1px solid #d1d1d6;">Date</th><th style="padding: 12px; border: 1px solid #d1d1d6;">Type</th>
-                    <th style="padding: 12px; border: 1px solid #d1d1d6;">Category</th><th style="padding: 12px; border: 1px solid #d1d1d6;">Title / Note</th>
-                    <th style="padding: 12px; border: 1px solid #d1d1d6;">Amount (INR)</th>
+                    <th style="padding: 12px; border: 1px solid #d1d1d6;">Category</th><th style="padding: 12px; border: 1px solid #d1d1d6;">Payment Method</th>
+                    <th style="padding: 12px; border: 1px solid #d1d1d6;">Title / Note</th><th style="padding: 12px; border: 1px solid #d1d1d6;">Amount (INR)</th>
                 </tr></thead><tbody>
         `;
         reportTx.forEach((t, index) => {
             const date = new Date(t.timestamp).toLocaleDateString('en-GB');
             let cleanCat = '-';
             if (t.category && t.type === 'expense') { const parts = t.category.split(' '); cleanCat = parts.length > 1 ? parts.slice(1).join(' ') : t.category; }
+            
+            let payStr = 'Cash/Bank';
+            if (t.paymentMethod && t.paymentMethod.startsWith('cc_')) {
+                const cardId = Number(t.paymentMethod.split('_')[1]);
+                const card = db.creditCards.find(c => c.id === cardId);
+                if (card) payStr = card.name;
+            }
+
             const color = t.type === 'income' ? '#34c759' : '#ff3b30'; const sign = t.type === 'income' ? '+' : '-';
             const bgStr = index % 2 === 0 ? 'background-color: #ffffff;' : 'background-color: #f9f9f9;';
             tableHTML += `<tr style="${bgStr}">
                 <td style="padding: 10px; border: 1px solid #d1d1d6;">${date}</td><td style="padding: 10px; border: 1px solid #d1d1d6; text-transform: capitalize;">${t.type}</td>
-                <td style="padding: 10px; border: 1px solid #d1d1d6;">${cleanCat}</td><td style="padding: 10px; border: 1px solid #d1d1d6;">${t.title}</td>
+                <td style="padding: 10px; border: 1px solid #d1d1d6;">${cleanCat}</td>
+                <td style="padding: 10px; border: 1px solid #d1d1d6;">${payStr}</td>
+                <td style="padding: 10px; border: 1px solid #d1d1d6;">${t.title}</td>
                 <td style="padding: 10px; border: 1px solid #d1d1d6; color: ${color}; font-weight: bold;">${sign}₹${t.amount.toLocaleString('en-IN')}</td>
             </tr>`;
         });
@@ -913,9 +999,17 @@
                 } else {
                     const icon = (t.category ? t.category.split(' ')[0] : '🏷️');
                     const dateStr = new Date(t.timestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                    
+                    let payBadge = '';
+                    if (t.paymentMethod && t.paymentMethod.startsWith('cc_')) {
+                        const cardId = Number(t.paymentMethod.split('_')[1]);
+                        const card = db.creditCards.find(c => c.id === cardId);
+                        if (card) payBadge = `<span style="font-size: 10px; color: var(--accent); font-weight: 700; border: 1px solid var(--accent); padding: 2px 6px; border-radius: 6px; margin-left: 6px;">💳 ${card.name}</span>`;
+                    }
+
                     recentHTML += `<div class="expense-item" onclick="editTransaction(${t.id})">
                         <div class="expense-left"><div class="icon-box">${icon}</div>
-                        <div><div class="title">${t.title}</div><div class="date">${dateStr}</div></div></div>
+                        <div><div class="title">${t.title} ${payBadge}</div><div class="date">${dateStr}</div></div></div>
                         <div class="amount">₹${t.amount.toLocaleString('en-IN')}</div></div>`;
                 }
             });
