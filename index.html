@@ -533,14 +533,12 @@
                 const index = db.transactions.findIndex(t => t.id === editingId);
                 const oldTx = db.transactions[index];
                 
-                // Revert old CC utilization if applicable
                 if (oldTx.type === 'expense' && oldTx.paymentMethod && oldTx.paymentMethod.startsWith('cc_')) {
                     const oldCardId = Number(oldTx.paymentMethod.split('_')[1]);
                     const cardIndex = db.creditCards.findIndex(c => c.id === oldCardId);
                     if(cardIndex > -1) db.creditCards[cardIndex].utilized = Math.max(0, db.creditCards[cardIndex].utilized - oldTx.amount);
                 }
                 
-                // Apply new CC utilization if applicable
                 if (type === 'expense' && paymentMethod && paymentMethod.startsWith('cc_')) {
                     const newCardId = Number(paymentMethod.split('_')[1]);
                     const cardIndex = db.creditCards.findIndex(c => c.id === newCardId);
@@ -552,7 +550,6 @@
                 db.transactions[index].category = category;
                 db.transactions[index].paymentMethod = paymentMethod;
             } else {
-                // Apply CC utilization on new expense
                 if (type === 'expense' && paymentMethod && paymentMethod.startsWith('cc_')) {
                     const cardId = Number(paymentMethod.split('_')[1]);
                     const cardIndex = db.creditCards.findIndex(c => c.id === cardId);
@@ -578,7 +575,6 @@
         if(!confirm("Permanently delete this entry?")) return;
         const tx = db.transactions.find(t => t.id === editingId);
         
-        // Reverse CC utilization if applicable
         if (tx && tx.type === 'expense' && tx.paymentMethod && tx.paymentMethod.startsWith('cc_')) {
             const cardId = Number(tx.paymentMethod.split('_')[1]);
             const cardIndex = db.creditCards.findIndex(c => c.id === cardId);
@@ -755,6 +751,11 @@
 
         if (!name || !invested || !current) return alert("Name, Invested, and Current Value are required.");
         
+        // STRICT VALIDATION FOR FUTURE AUTOMATION
+        if ((sipAmount && !sipDate) || (!sipAmount && sipDate)) {
+            return alert("Automated Tracking Error: You must provide BOTH the Monthly SIP Amount and the SIP Date, or leave both blank.");
+        }
+
         if (sipDate !== null && (sipDate < 1 || sipDate > 31)) {
             return alert("SIP Date must be a valid calendar day between 1 and 31.");
         }
