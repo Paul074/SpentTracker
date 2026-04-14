@@ -86,6 +86,13 @@
         .widget-card { background: var(--card); border-radius: 24px; padding: 20px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
         .cat-list-item { display: flex; justify-content: space-between; align-items: center; background: var(--card); padding: 12px 16px; border-radius: 12px; margin-bottom: 8px; font-weight: 600;}
 
+        /* Wealth Strategy Cards */
+        .strategy-card { background: var(--card); padding: 20px; border-radius: 20px; margin-bottom: 15px; border: 1px solid #e5e5ea; box-shadow: 0 2px 10px rgba(0,0,0,0.02); text-align: left; }
+        .strategy-label { font-size: 11px; font-weight: 800; color: var(--subtext); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; display: block;}
+        .strategy-title { font-size: 18px; font-weight: 800; margin: 0 0 8px 0; color: var(--text); letter-spacing: -0.5px;}
+        .strategy-desc { font-size: 14px; font-weight: 500; color: #666; line-height: 1.5; margin: 0;}
+        .sip-highlight { color: var(--success); font-size: 28px; font-weight: 800; margin: 5px 0; letter-spacing: -1px;}
+
         /* Credit Tab Specifics */
         .credit-card-ui { background: linear-gradient(135deg, #1c1c1e, #2c2c2e); color: white; border-radius: 20px; padding: 20px; margin-bottom: 15px; position: relative; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.15);}
         .cc-name { font-size: 18px; font-weight: 800; letter-spacing: 1px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;}
@@ -126,6 +133,7 @@
     <div class="header-flex">
         <h2 style="margin: 0; font-size: 24px; letter-spacing: -0.5px;">Dashboard</h2>
         <div class="header-actions">
+            <button class="icon-btn" onclick="openWealthModal()">💡</button>
             <button class="icon-btn" onclick="resetDatabase()" style="color: var(--danger);">🗑️</button>
             <button class="icon-btn" onclick="openSettings()">⚙️</button>
         </div>
@@ -323,9 +331,9 @@
         <div id="npsAllocationSection" style="display: none; background: var(--bg); padding: 15px; border-radius: 16px; margin-bottom: 16px;">
             <div class="label" style="margin-bottom: 10px; font-size: 11px;">NPS Asset Allocation (%)</div>
             <div style="display: flex; gap: 10px;">
-                <input type="number" id="npsE" placeholder="Equity" style="margin: 0; padding: 12px; font-size: 14px;">
-                <input type="number" id="npsC" placeholder="Corp" style="margin: 0; padding: 12px; font-size: 14px;">
-                <input type="number" id="npsG" placeholder="Govt" style="margin: 0; padding: 12px; font-size: 14px;">
+                <input type="number" id="npsE" placeholder="Equity" style="margin: 0; padding: 12px; font-size: 14px; flex: 1; box-sizing: border-box; width: 100%;">
+                <input type="number" id="npsC" placeholder="Corp" style="margin: 0; padding: 12px; font-size: 14px; flex: 1; box-sizing: border-box; width: 100%;">
+                <input type="number" id="npsG" placeholder="Govt" style="margin: 0; padding: 12px; font-size: 14px; flex: 1; box-sizing: border-box; width: 100%;">
             </div>
             <div style="color: var(--subtext); font-size: 11px; margin-top: 8px; font-weight: 600;">Values must exactly equal 100%</div>
         </div>
@@ -334,8 +342,46 @@
         <input type="number" id="savCurrent" placeholder="Current Market Value ₹">
         <input type="number" id="savRate" placeholder="Interest Rate % (Optional)">
         
+        <div style="display: flex; gap: 10px; margin-top: 16px;">
+            <input type="number" id="savSipAmount" placeholder="Monthly SIP ₹" style="margin-bottom: 0; flex: 1;">
+            <input type="number" id="savSipDate" placeholder="SIP Date (1-31)" min="1" max="31" style="margin-bottom: 0; flex: 1;">
+        </div>
+        <p style="font-size: 11px; color: var(--subtext); margin-top: 8px; margin-bottom: 16px; font-weight: 500;">*Leave blank if no automated monthly investment.</p>
+        
         <button class="btn-main" onclick="saveSavings()">Save Instrument</button>
         <button class="btn-danger" id="deleteSavBtn" onclick="deleteSavings()">Remove Instrument</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="wealthModal" onclick="closeModal(event, 'wealthModal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <button class="close-btn" onclick="closeModal(null, 'wealthModal', true)">×</button>
+        <h2 style="margin-bottom: 24px; letter-spacing: -0.5px;">Wealth Strategy</h2>
+        
+        <div class="strategy-card">
+            <span class="strategy-label">Dynamic SIP Projection</span>
+            <h3 class="strategy-title" id="sipTitle">Calculated at 12% Annual Yield</h3>
+            <div id="sipDisplay" class="sip-highlight">₹0</div>
+            <p class="strategy-desc" id="sipDesc">Log income and maintain a positive monthly savings rate to view your 10-year compounding projection.</p>
+        </div>
+
+        <div class="strategy-card">
+            <span class="strategy-label">Capital Accumulation</span>
+            <h3 class="strategy-title">The "Hell Week" Protocol</h3>
+            <p class="strategy-desc">Designate one week every month to absolute zero non-essential spending. Eliminate all dining, leisure, and convenience purchases to drastically widen your savings margin and reset baseline dopamine.</p>
+        </div>
+
+        <div class="strategy-card">
+            <span class="strategy-label">Deployment</span>
+            <h3 class="strategy-title">IPO & ETF Liquidity Stash</h3>
+            <p class="strategy-desc">Do not tie up 100% of your capital in scheduled mandates. Maintain an isolated, liquid cash buffer specifically to attack market dips via ETFs or block immediate funds for high-conviction IPOs.</p>
+        </div>
+
+        <div class="strategy-card">
+            <span class="strategy-label">The 50/30/20 Rule</span>
+            <h3 class="strategy-title">Needs 50% | Wants 30% | Invest 20%</h3>
+            <p class="strategy-desc">Never let your "Wants" eat into your "Invest" capital. Transfer your investment funds out of your primary account on payday. Treat it as a non-negotiable tax on yourself.</p>
+        </div>
     </div>
 </div>
 
@@ -559,7 +605,7 @@
         }
     }
 
-    // --- NEW: Savings Tab & NPS Allocation ---
+    // --- NEW: Savings Tab & SIP Integration ---
     function openSelectInstrumentModal() {
         document.getElementById('selectInstrumentModal').classList.add('active');
     }
@@ -575,8 +621,9 @@
         document.getElementById('savInvested').value = '';
         document.getElementById('savCurrent').value = '';
         document.getElementById('savRate').value = '';
+        document.getElementById('savSipAmount').value = '';
+        document.getElementById('savSipDate').value = '';
         
-        // NPS Allocation Toggle
         const npsBlock = document.getElementById('npsAllocationSection');
         if (type === 'NPS') {
             npsBlock.style.display = 'block';
@@ -604,8 +651,9 @@
         document.getElementById('savInvested').value = sav.invested;
         document.getElementById('savCurrent').value = sav.current;
         document.getElementById('savRate').value = sav.rate || '';
+        document.getElementById('savSipAmount').value = sav.sipAmount || '';
+        document.getElementById('savSipDate').value = sav.sipDate || '';
         
-        // NPS Allocation Toggle
         const npsBlock = document.getElementById('npsAllocationSection');
         if (sav.type === 'NPS') {
             npsBlock.style.display = 'block';
@@ -625,8 +673,15 @@
         const invested = Number(document.getElementById('savInvested').value);
         const current = Number(document.getElementById('savCurrent').value);
         const rate = document.getElementById('savRate').value ? Number(document.getElementById('savRate').value) : null;
+        
+        const sipAmount = Number(document.getElementById('savSipAmount').value) || null;
+        const sipDate = Number(document.getElementById('savSipDate').value) || null;
 
         if (!name || !invested || !current) return alert("Name, Invested, and Current Value are required.");
+        
+        if (sipDate !== null && (sipDate < 1 || sipDate > 31)) {
+            return alert("SIP Date must be a valid calendar day between 1 and 31.");
+        }
 
         let allocations = null;
         if (selectedSavingsType === 'NPS') {
@@ -642,9 +697,9 @@
 
         if (editingSavingsId) {
             const index = db.savings.findIndex(s => s.id === editingSavingsId);
-            db.savings[index] = { id: editingSavingsId, type: selectedSavingsType, icon: selectedSavingsIcon, name, invested, current, rate, allocations };
+            db.savings[index] = { id: editingSavingsId, type: selectedSavingsType, icon: selectedSavingsIcon, name, invested, current, rate, allocations, sipAmount, sipDate };
         } else {
-            db.savings.push({ id: Date.now(), type: selectedSavingsType, icon: selectedSavingsIcon, name, invested, current, rate, allocations });
+            db.savings.push({ id: Date.now(), type: selectedSavingsType, icon: selectedSavingsIcon, name, invested, current, rate, allocations, sipAmount, sipDate });
         }
         
         saveDb(); closeModal(null, 'addSavingsModal', true); renderSavingsTab();
@@ -682,6 +737,11 @@
                     npsBadge = `<div style="font-size: 11px; color: var(--subtext); margin-top: 4px; font-weight: 600;">E: ${s.allocations.e}% • C: ${s.allocations.c}% • G: ${s.allocations.g}%</div>`;
                 }
 
+                let sipBadge = '';
+                if (s.sipAmount && s.sipDate) {
+                    sipBadge = `<div style="font-size: 11px; color: var(--accent); margin-top: 4px; font-weight: 700;">🔄 SIP: ₹${s.sipAmount.toLocaleString('en-IN')} on Day ${s.sipDate}</div>`;
+                }
+
                 return `
                 <div class="expense-item" onclick="editSavings(${s.id})">
                     <div class="expense-left">
@@ -690,6 +750,7 @@
                             <div class="title" style="font-size: 15px;">${s.name} ${rateText}</div>
                             <div class="date">Inv: ₹${s.invested.toLocaleString('en-IN')}</div>
                             ${npsBadge}
+                            ${sipBadge}
                         </div>
                     </div>
                     <div style="text-align: right;">
@@ -717,6 +778,11 @@
     }
 
     // --- Analytics ---
+    function openWealthModal() {
+        calculateStats(); 
+        document.getElementById('wealthModal').classList.add('active');
+    }
+
     function exportExcel() {
         const currentMonthId = getCurrentMonthId();
         const currentMonthName = new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' });
@@ -777,6 +843,14 @@
     }
 
     function saveDb() { localStorage.setItem('kite_db', JSON.stringify(db)); }
+
+    function calculateSIP(monthlyInvestment, years, annualRate) {
+        if (monthlyInvestment <= 0) return 0;
+        const monthlyRate = annualRate / 12 / 100;
+        const months = years * 12;
+        const futureValue = monthlyInvestment * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate) * (1 + monthlyRate);
+        return Math.round(futureValue);
+    }
 
     function calculateStats() {
         const currentMonthId = getCurrentMonthId();
@@ -945,6 +1019,19 @@
             cardLabel.innerText = "REMAINING BUDGET"; cardLabel.style.color = "var(--subtext)";
             mainDisplay.innerText = `₹${rem.toLocaleString('en-IN')}`; mainDisplay.style.color = "var(--text)";
             subDisplay.innerText = `Monthly target is ₹${targetAmount.toLocaleString('en-IN')}`;
+        }
+
+        const sipDisplay = document.getElementById('sipDisplay');
+        const sipDesc = document.getElementById('sipDesc');
+        if (monthSaved > 0) {
+            const tenYearVal = calculateSIP(monthSaved, 10, 12);
+            sipDisplay.innerText = `₹${tenYearVal.toLocaleString('en-IN')}`;
+            sipDisplay.style.color = "var(--success)";
+            sipDesc.innerText = `If you invest your current month's savings of ₹${monthSaved.toLocaleString('en-IN')} every month into an Index ETF, this is your projected capital in 10 years.`;
+        } else {
+            sipDisplay.innerText = `₹0`;
+            sipDisplay.style.color = "var(--danger)";
+            sipDesc.innerText = `You are not operating in a surplus. Lower your expenses or increase your income to unlock compounding projections.`;
         }
     }
 
