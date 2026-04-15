@@ -47,7 +47,7 @@ body{background-color:var(--bg);color:var(--text);font-family:-apple-system,Blin
 .modal-overlay.active .modal-content{transform:translateY(0);}
 input,select{width:100%;padding:18px;margin-bottom:16px;border-radius:16px;border:none;background:var(--card);font-size:16px;font-weight:500;font-family:inherit;box-sizing:border-box;}
 .btn-main{background:var(--accent);color:white;width:100%;padding:18px;border-radius:16px;font-size:17px;font-weight:700;border:none;cursor:pointer;margin-top:8px;}
-.btn-danger{background:var(--danger-light);color:var(--danger);width:100%;padding:18px;border-radius:16px;font-size:17px;font-weight:700;border:none;cursor:pointer;margin-top:10px;display:none;}
+.btn-danger{background:var(--danger-light);color:var(--danger);width:100%;padding:18px;border-radius:16px;font-size:17px;font-weight:700;border:none;cursor:pointer;margin-top:10px;}
 .btn-warning{background:var(--warning);color:white;width:100%;padding:18px;border-radius:16px;font-size:17px;font-weight:700;border:none;cursor:pointer;margin-top:10px;display:none;}
 .btn-secondary{background:#e5e5ea;color:var(--text);width:100%;padding:18px;border-radius:16px;font-size:16px;font-weight:700;border:none;cursor:pointer;margin-top:10px;}
 .close-btn{position:absolute;top:20px;right:24px;font-weight:700;font-size:24px;color:var(--subtext);cursor:pointer;border:none;background:transparent;}
@@ -78,7 +78,7 @@ input,select{width:100%;padding:18px;margin-bottom:16px;border-radius:16px;borde
 .loan-emi{font-weight:800;font-size:18px;color:var(--danger);}
 .loan-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;font-weight:500;color:var(--subtext);}
 .loan-val{color:var(--text);font-weight:700;}
-.bank-card{background:var(--card);border-radius:16px;padding:16px 20px;margin-bottom:12px;border:1px solid #e5e5ea;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 5px rgba(0,0,0,0.02);}
+.bank-card{background:var(--card);border-radius:16px;padding:16px 20px;margin-bottom:12px;border:1px solid #e5e5ea;display:flex;justify-content:space-between;align-items:center;}
 .bank-card-name{font-weight:700;font-size:15px;}
 .bank-card-bal{font-weight:800;font-size:16px;}
 .instrument-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:20px;}
@@ -228,6 +228,7 @@ input,select{width:100%;padding:18px;margin-bottom:16px;border-radius:16px;borde
         <p style="font-size:14px;color:var(--subtext);margin-bottom:20px;">Select the bank account where you received this money.</p>
         <select id="settlePaymentMethod"></select>
         <button class="btn-main" onclick="confirmSettle()">Confirm Received</button>
+        <button class="btn-danger" style="display:block; margin-top:10px;" onclick="absorbDebt()">Write Off (Absorb as My Expense)</button>
     </div>
 </div>
 
@@ -526,6 +527,20 @@ input,select{width:100%;padding:18px;margin-bottom:16px;border-radius:16px;borde
         const bId = val('settlePaymentMethod'), i = db.transactions.findIndex(t=>t.id===pendingSettleTxId);
         if(i>-1&&db.transactions[i].receivables) { const rI = db.transactions[i].receivables.findIndex(r=>r.id===pendingSettleRecId); if(rI>-1){ db.transactions[i].receivables[rI].isPaid=true; db.transactions[i].receivables[rI].paymentMethod=bId; saveDb(); closeModal(null,'settleModal',true); calculateStats(); renderSavingsTab(); populateDropdowns(); } }
     }
+    
+    function absorbDebt() {
+        if(!pendingSettleTxId||!pendingSettleRecId) return;
+        if(!confirm("Absorb this debt? It will permanently become your personal expense.")) return;
+        const i = db.transactions.findIndex(t=>t.id===pendingSettleTxId);
+        if(i>-1&&db.transactions[i].receivables) {
+            const rI = db.transactions[i].receivables.findIndex(r=>r.id===pendingSettleRecId);
+            if(rI>-1){
+                db.transactions[i].myShare += db.transactions[i].receivables[rI].amount;
+                db.transactions[i].receivables.splice(rI, 1);
+                saveDb(); closeModal(null,'settleModal',true); calculateStats(); renderSavingsTab(); populateDropdowns();
+            }
+        }
+    }
 
     function openSettings() { el('monthlyTargetAmount').value=db.target||''; populateDropdowns(); el('settingsModal').classList.add('active'); }
     function saveIncomeFromSettings() { const a=num('incomeAmount'); if(!a) return alert("Enter amount."); db.transactions.push({id:Date.now(), type:'income', amount:a, title:val('incomeTitle')||'Income', paymentMethod:val('incomeBankSelect')||'cash', month:getCurrentMonthId(), timestamp:new Date().toISOString()}); saveDb(); el('incomeAmount').value=''; el('incomeTitle').value=''; closeModal(null,'settingsModal',true); calculateStats(); alert("Logged."); }
@@ -603,7 +618,6 @@ input,select{width:100%;padding:18px;margin-bottom:16px;border-radius:16px;borde
         el('totalSavingsValue').innerText=`₹${tC.toLocaleString()}`; el('totalSavingsReturn').innerText = tI>0?`${tC>=tI?'+':''}₹${(tC-tI).toLocaleString()} (${((tC-tI)/tI*100).toFixed(1)}%)`:''; el('totalSavingsReturn').style.color=tC>=tI?'var(--success)':'var(--danger)';
     }
 
-    // --- MAIN ENGINE ---
     function openWealthModal() { calculateStats(); el('wealthModal').classList.add('active'); }
     function exportExcel() { alert("Exporter optimized for space. Use JSON Backup for full data portability."); }
     function calculateSIP(m, y, r) { if(m<=0)return 0; const mr=r/12/100, mo=y*12; return Math.round(m*((Math.pow(1+mr,mo)-1)/mr)*(1+mr)); }
@@ -635,7 +649,7 @@ input,select{width:100%;padding:18px;margin-bottom:16px;border-radius:16px;borde
             else if(t.type==='split'){ mSp+=t.myShare; uCat.add("🍴 Splits"); cMap["🍴 Splits"]=(cMap["🍴 Splits"]||0)+t.myShare; if(['All Expenses','🍴 Splits','Splits'].includes(activeCategoryFilter)) fTx.push(t); }
         });
 
-        if(!Object.keys(db.categoryLimits).length) el('categoryBudgetsContainer').innerHTML=`<div class="empty-state-card"><div class="empty-state-icon">📊</div><div class="empty-state-title">No Limits</div></div>`;
+        if(!Object.keys(db.categoryLimits).length) el('categoryBudgetsContainer').innerHTML=`<div class="empty-state-card"><div class="empty-state-icon">📊</div><div class="empty-state-title">No Limits Set</div></div>`;
         else { let bH=''; for(const[c,l] of Object.entries(db.categoryLimits)){ if(l>0){ const s=cMap[c]||0, p=Math.min(s/l*100,100); bH+=`<div class="cat-budget-card"><div class="cat-budget-header"><span>${c}</span><span>₹${s.toLocaleString()} / ₹${l.toLocaleString()}</span></div><div class="progress-bg"><div class="progress-fill ${p>90?'danger':p>75?'warning':''}" style="width:${p}%"></div></div></div>`; } } el('categoryBudgetsContainer').innerHTML=bH; }
 
         el('categoryFilterContainer').innerHTML = `<div class="cat-pill ${activeCategoryFilter==='All Expenses'?'active':''}" onclick="setFilter('All Expenses')">All</div><div class="cat-pill ${activeCategoryFilter==='Splits'?'active':''}" onclick="setFilter('Splits')" style="color:var(--info);">Splits</div><div class="cat-pill ${activeCategoryFilter==='Income'?'active':''}" onclick="setFilter('Income')">Income</div><div class="cat-pill ${activeCategoryFilter==='Repayments'?'active':''}" onclick="setFilter('Repayments')">Repays</div>` + Array.from(uCat).sort().map(c=>`<div class="cat-pill ${activeCategoryFilter===c?'active':''}" onclick="setFilter('${c}')">${c}</div>`).join('');
@@ -647,37 +661,21 @@ input,select{width:100%;padding:18px;margin-bottom:16px;border-radius:16px;borde
             else if(t.paymentMethod&&t.paymentMethod.startsWith('cc_')){ const c=db.creditCards.find(x=>x.id==t.paymentMethod.split('_')[1]); if(c) sB=`<span style="font-size:10px;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:2px;margin-left:6px;">💳 ${c.name}</span>`; }
             if(t.type==='income') return `<div class="expense-item" onclick="editTransaction(${t.id})"><div class="expense-row-main"><div class="expense-left"><div class="icon-box" style="color:var(--success);background:var(--success-light);">💵</div><div><div class="title">${t.title} ${sB}</div><div class="date">${dStr}</div></div></div><div class="amount" style="color:var(--success);">+₹${t.amount.toLocaleString()}</div></div></div>`;
             if(t.type==='repayment') return `<div class="expense-item" onclick="editTransaction(${t.id})"><div class="expense-row-main"><div class="expense-left"><div class="icon-box" style="color:var(--warning);background:rgba(255,149,0,0.1);">💸</div><div><div class="title">Paid Debt</div><div class="date">${dStr} ${sB}</div></div></div><div class="amount">-₹${t.amount.toLocaleString()}</div></div></div>`;
-            if(t.type==='split') return `<div class="expense-item" style="align-items:flex-start;" onclick="editTransaction(${t.id})"><div class="expense-row-main"><div class="expense-left"><div class="icon-box" style="color:var(--info);background:var(--info-light);">🍕</div><div><div class="title">${t.title} ${sB}</div><div class="date">${dStr}</div></div></div><div class="amount">₹${t.myShare.toLocaleString()}<div style="font-size:10px;color:var(--subtext);">My Share</div></div></div><div style="width:100%;border-top:1px dashed #e5e5ea;margin-top:10px;">${t.receivables.map(r=> r.isPaid?`<div class="split-debtor-row" onclick="event.stopPropagation()"><span style="text-decoration:line-through;color:var(--subtext);">${r.name}</span><button class="btn-settle settled">✅</button></div>`:`<div class="split-debtor-row" onclick="event.stopPropagation()"><span>${r.name} owes ₹${r.amount}</span><button class="btn-settle" onclick="openSettleModal(${t.id},'${r.id}')">Unpaid</button></div>`).join('')}</div></div>`;
+            if(t.type==='split') return `<div class="expense-item" style="align-items:flex-start;" onclick="editTransaction(${t.id})"><div class="expense-row-main"><div class="expense-left"><div class="icon-box" style="color:var(--info);background:var(--info-light);">🍕</div><div><div class="title">${t.title} ${sB}</div><div class="date">${dStr}</div></div></div><div class="amount">₹${t.myShare.toLocaleString()}<div style="font-size:10px;color:var(--subtext);">My Share</div></div></div><div style="width:100%;border-top:1px dashed #e5e5ea;margin-top:10px;">${t.receivables.map(r=> r.isPaid?`<div class="split-debtor-row" onclick="event.stopPropagation()"><span style="text-decoration:line-through;color:var(--subtext);">${r.name}</span><button class="btn-settle settled">✅</button></div>`:`<div class="split-debtor-row" onclick="event.stopPropagation()"><span>${r.name} owes ₹${r.amount}</span><button class="btn-settle" onclick="event.stopPropagation(); openSettleModal(${t.id},'${r.id}')">Unpaid</button></div>`).join('')}</div></div>`;
             return `<div class="expense-item" onclick="editTransaction(${t.id})"><div class="expense-row-main"><div class="expense-left"><div class="icon-box">${(t.category||'🏷️').split(' ')[0]}</div><div><div class="title">${t.title} ${sB}</div><div class="date">${dStr}</div></div></div><div class="amount">₹${t.amount.toLocaleString()}</div></div></div>`;
         }).join('');
 
         el('displaySpent').innerText = `₹${mSp.toLocaleString()}`;
         if(db.target>0 && mSp>db.target) { el('displaySpent').style.color="var(--danger)"; el('homeTargetStatus').style.display="inline-block"; } else { el('displaySpent').style.color="var(--text)"; el('homeTargetStatus').style.display="none"; }
         
-        // Chart Engine Restoration
         let cData = [], cLabs = [];
-        if(currentChartView === 'day') {
-            cLabs = ['S','M','T','W','T','F','S']; cData = [0,0,0,0,0,0,0];
-            db.transactions.forEach(t=>{ let a=t.type==='expense'?t.amount:t.type==='split'?t.myShare:0; if(a>0){ const ms=new Date(t.timestamp).getTime(); if(ms>=weekStartMs&&ms<weekStartMs+604800000) cData[new Date(t.timestamp).getDay()]+=a; }});
-        } else if(currentChartView === 'week') {
-            cLabs = ['W1','W2','W3','W4','W5']; cData = [0,0,0,0,0];
-            db.transactions.forEach(t=>{ let a=t.type==='expense'?t.amount:t.type==='split'?t.myShare:0; if(a>0){ const d=new Date(t.timestamp); if(d.getFullYear()===currentYear&&d.getMonth()===now.getMonth()) cData[Math.min(Math.floor((d.getDate()-1)/7),4)]+=a; }});
-        } else if(currentChartView === 'month') {
-            cLabs = ['J','F','M','A','M','J','J','A','S','O','N','D']; cData = new Array(12).fill(0);
-            db.transactions.forEach(t=>{ let a=t.type==='expense'?t.amount:t.type==='split'?t.myShare:0; if(a>0){ const d=new Date(t.timestamp); if(d.getFullYear()===currentYear) cData[d.getMonth()]+=a; }});
-        } else if(currentChartView === 'year') {
-            cLabs = [currentYear-2, currentYear-1, currentYear]; cData = [0,0,0];
-            db.transactions.forEach(t=>{ let a=t.type==='expense'?t.amount:t.type==='split'?t.myShare:0; if(a>0){ const y=new Date(t.timestamp).getFullYear(); if(y===currentYear-2) cData[0]+=a; else if(y===currentYear-1) cData[1]+=a; else if(y===currentYear) cData[2]+=a; }});
-        }
+        if(currentChartView === 'day') { cLabs = ['S','M','T','W','T','F','S']; cData = [0,0,0,0,0,0,0]; db.transactions.forEach(t=>{ let a=t.type==='expense'?t.amount:t.type==='split'?t.myShare:0; if(a>0){ const ms=new Date(t.timestamp).getTime(); if(ms>=weekStartMs&&ms<weekStartMs+604800000) cData[new Date(t.timestamp).getDay()]+=a; }}); }
+        else if(currentChartView === 'week') { cLabs = ['W1','W2','W3','W4','W5']; cData = [0,0,0,0,0]; db.transactions.forEach(t=>{ let a=t.type==='expense'?t.amount:t.type==='split'?t.myShare:0; if(a>0){ const d=new Date(t.timestamp); if(d.getFullYear()===currentYear&&d.getMonth()===now.getMonth()) cData[Math.min(Math.floor((d.getDate()-1)/7),4)]+=a; }}); }
+        else if(currentChartView === 'month') { cLabs = ['J','F','M','A','M','J','J','A','S','O','N','D']; cData = new Array(12).fill(0); db.transactions.forEach(t=>{ let a=t.type==='expense'?t.amount:t.type==='split'?t.myShare:0; if(a>0){ const d=new Date(t.timestamp); if(d.getFullYear()===currentYear) cData[d.getMonth()]+=a; }}); }
+        else if(currentChartView === 'year') { cLabs = [currentYear-2, currentYear-1, currentYear]; cData = [0,0,0]; db.transactions.forEach(t=>{ let a=t.type==='expense'?t.amount:t.type==='split'?t.myShare:0; if(a>0){ const y=new Date(t.timestamp).getFullYear(); if(y===currentYear-2) cData[0]+=a; else if(y===currentYear-1) cData[1]+=a; else if(y===currentYear) cData[2]+=a; }}); }
 
-        const cMax = Math.max(...cData, 100);
-        const bCol = (db.target>0 && mSp>db.target) ? 'var(--danger)' : 'var(--accent)';
-        const fmt = v => v>=1000 ? (v/1000).toFixed(1).replace('.0','')+'k' : v;
-        
-        el('chartBars').innerHTML = cLabs.map((l,i)=>{
-            const v = cData[i]; const h = Math.max((v/cMax)*100, 2);
-            return `<div class="bar-wrapper" style="width:${100/cLabs.length}%"><div style="font-size:9px;color:var(--subtext);margin-bottom:4px;font-weight:700;">${v>0?fmt(v):''}</div><div class="bar" style="height:${h}%;background:${bCol};"></div><div class="day-label" style="font-size:9px;">${l}</div></div>`;
-        }).join('');
+        const cMax = Math.max(...cData, 100), bCol = (db.target>0 && mSp>db.target) ? 'var(--danger)' : 'var(--accent)', fmt = v => v>=1000 ? (v/1000).toFixed(1).replace('.0','')+'k' : v;
+        el('chartBars').innerHTML = cLabs.map((l,i)=>{ const v = cData[i]; const h = Math.max((v/cMax)*100, 2); return `<div class="bar-wrapper" style="width:${100/cLabs.length}%"><div style="font-size:9px;color:var(--subtext);margin-bottom:4px;font-weight:700;">${v>0?fmt(v):''}</div><div class="bar" style="height:${h}%;background:${bCol};"></div><div class="day-label">${l}</div></div>`; }).join('');
         document.querySelectorAll('.chart-toggle').forEach(e => e.classList.remove('active')); el('toggle-'+currentChartView).classList.add('active');
         
         const dL = db.target>0?Math.floor(db.target/daysInMonth):0;
@@ -693,3 +691,4 @@ input,select{width:100%;padding:18px;margin-bottom:16px;border-radius:16px;borde
 </script>
 </body>
 </html>
+
