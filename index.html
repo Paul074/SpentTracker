@@ -18,7 +18,7 @@ body{background-color:var(--bg);color:var(--text);font-family:-apple-system,Blin
 .chart-toggles{display:flex;background:var(--bg);border-radius:8px;padding:4px;margin-bottom:15px;}
 .chart-toggle{flex:1;text-align:center;font-size:12px;font-weight:700;padding:6px 0;color:var(--subtext);border-radius:6px;cursor:pointer;transition:all 0.2s;}
 .chart-toggle.active{background:var(--card);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,0.1);}
-.chart-container{display:flex;justify-content:space-between;align-items:flex-end;height:120px;border-bottom:1px solid #e5e5ea;padding-bottom:10px;margin-bottom:10px;}
+.chart-container{display:flex;justify-content:space-between;align-items:flex-end;height:140px;border-bottom:1px solid #e5e5ea;padding-bottom:10px;margin-bottom:10px;}
 .bar-wrapper{display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;}
 .bar{width:80%;background:var(--accent);border-radius:4px 4px 0 0;min-height:2px;transition:height 0.3s ease;}
 .day-label{color:var(--subtext);margin-top:8px;font-weight:600;text-align:center;font-size:9px;}
@@ -78,7 +78,7 @@ input,select{width:100%;padding:18px;margin-bottom:16px;border-radius:16px;borde
 .loan-emi{font-weight:800;font-size:18px;color:var(--danger);}
 .loan-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13px;font-weight:500;color:var(--subtext);}
 .loan-val{color:var(--text);font-weight:700;}
-.bank-card{background:var(--card);border-radius:16px;padding:16px 20px;margin-bottom:12px;border:1px solid #e5e5ea;display:flex;justify-content:space-between;align-items:center;}
+.bank-card{background:var(--card);border-radius:16px;padding:16px 20px;margin-bottom:12px;border:1px solid #e5e5ea;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 5px rgba(0,0,0,0.02);}
 .bank-card-name{font-weight:700;font-size:15px;}
 .bank-card-bal{font-weight:800;font-size:16px;}
 .instrument-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:20px;}
@@ -111,9 +111,15 @@ input,select{width:100%;padding:18px;margin-bottom:16px;border-radius:16px;borde
             <button class="icon-btn" onclick="openSettings()">⚙️</button>
         </div>
     </div>
-    <div class="card"><div style="text-align:center;"><div class="label">Total Spending</div><div class="total-number" id="displaySpent">₹0</div></div>
+    <div class="card">
+        <div style="text-align:center;"><div class="label">Total Spending</div><div class="total-number" id="displaySpent">₹0</div></div>
         <div class="alert-box" id="homeTargetStatus">⚠️ Monthly target crossed</div>
-        <div class="chart-toggles"><div class="chart-toggle active" id="toggle-day" onclick="setChartView('day')">Day</div><div class="chart-toggle" id="toggle-week" onclick="setChartView('week')">Week</div><div class="chart-toggle" id="toggle-month" onclick="setChartView('month')">Month</div><div class="chart-toggle" id="toggle-year" onclick="setChartView('year')">Year</div></div>
+        <div class="chart-toggles">
+            <div class="chart-toggle active" id="toggle-day" onclick="setChartView('day')">Day</div>
+            <div class="chart-toggle" id="toggle-week" onclick="setChartView('week')">Week</div>
+            <div class="chart-toggle" id="toggle-month" onclick="setChartView('month')">Month</div>
+            <div class="chart-toggle" id="toggle-year" onclick="setChartView('year')">Year</div>
+        </div>
         <div class="chart-container" id="chartBars"></div>
     </div>
     <div class="category-scroll" id="categoryFilterContainer"></div>
@@ -521,7 +527,6 @@ input,select{width:100%;padding:18px;margin-bottom:16px;border-radius:16px;borde
         if(i>-1&&db.transactions[i].receivables) { const rI = db.transactions[i].receivables.findIndex(r=>r.id===pendingSettleRecId); if(rI>-1){ db.transactions[i].receivables[rI].isPaid=true; db.transactions[i].receivables[rI].paymentMethod=bId; saveDb(); closeModal(null,'settleModal',true); calculateStats(); renderSavingsTab(); populateDropdowns(); } }
     }
 
-    // SETTINGS & BUDGETS
     function openSettings() { el('monthlyTargetAmount').value=db.target||''; populateDropdowns(); el('settingsModal').classList.add('active'); }
     function saveIncomeFromSettings() { const a=num('incomeAmount'); if(!a) return alert("Enter amount."); db.transactions.push({id:Date.now(), type:'income', amount:a, title:val('incomeTitle')||'Income', paymentMethod:val('incomeBankSelect')||'cash', month:getCurrentMonthId(), timestamp:new Date().toISOString()}); saveDb(); el('incomeAmount').value=''; el('incomeTitle').value=''; closeModal(null,'settingsModal',true); calculateStats(); alert("Logged."); }
     function saveTargetFromSettings() { db.target=num('monthlyTargetAmount'); saveDb(); calculateStats(); alert("Target updated."); }
@@ -532,7 +537,6 @@ input,select{width:100%;padding:18px;margin-bottom:16px;border-radius:16px;borde
     function addCategory() { const v=val('newCategoryInput').trim(); if(v){ db.categories.push(v); el('newCategoryInput').value=''; saveDb(); populateCategorySelects(); renderCategorySettings(); calculateStats(); } }
     function deleteCategory(i) { if(confirm("Delete category?")){ const c=db.categories[i]; db.categories.splice(i,1); delete db.categoryLimits[c]; saveDb(); populateCategorySelects(); renderCategorySettings(); calculateStats(); } }
 
-    // BANKS, CARDS, LOANS
     function openAddBankModal(){ editingBankId=null; el('bankModalTitle').innerText="Add Bank"; el('bankName').value=''; el('bankStartingBalance').value=''; el('deleteBankBtn').style.display='none'; el('addBankModal').classList.add('active'); }
     function editBankAccount(id){ editingBankId=id; const b=db.bankAccounts.find(x=>x.id===id); if(b){ el('bankModalTitle').innerText="Edit Bank"; el('bankName').value=b.name; el('bankStartingBalance').value=b.startingBalance; el('deleteBankBtn').style.display='block'; el('addBankModal').classList.add('active'); } }
     function saveBankAccount(){ const n=val('bankName').trim(), b=num('bankStartingBalance')||0; if(!n) return alert("Name needed."); if(editingBankId){ const i=db.bankAccounts.findIndex(x=>x.id===editingBankId); db.bankAccounts[i]={id:editingBankId, name:n, startingBalance:b}; } else db.bankAccounts.push({id:Date.now(), name:n, startingBalance:b}); saveDb(); populateDropdowns(); closeModal(null,'addBankModal',true); renderSavingsTab(); calculateStats(); }
@@ -556,7 +560,6 @@ input,select{width:100%;padding:18px;margin-bottom:16px;border-radius:16px;borde
         else lCon.innerHTML=db.loans.map(l=>{ const p=Math.max(0,(l.initialPrincipal||0)-(bal.loanPaid[l.id]||0)); return `<div class="loan-card" onclick="editLoan(${l.id})"><div class="loan-header"><div class="loan-name">🏦 ${l.name}</div><div style="text-align:right;"><div class="label" style="font-size:10px;">EMI</div><div class="loan-emi">₹${l.emi.toLocaleString()}</div></div></div><div class="loan-stats"><div>Prin: <span class="loan-val">₹${p.toLocaleString()}</span></div><div>Int: <span class="loan-val">${l.rate}%</span></div><div>Tenure: <span class="loan-val">${l.tenure}M</span></div></div></div>`; }).join('');
     }
 
-    // SAVINGS
     function openSelectInstrumentModal() { el('selectInstrumentModal').classList.add('active'); }
     function toggleSavTime(type) { savIsHistorical = (type==='historical'); el('savTimeNew').classList.toggle('active',!savIsHistorical); el('savTimeHistorical').classList.toggle('active',savIsHistorical); el('savFundingSection').style.display=savIsHistorical?'none':'block'; }
     function toggleSavingsFields(type) { el('npsAllocationSection').style.display=type==='NPS'?'block':'none'; el('fdSpecificSection').style.display=type==='Fixed Deposit'?'block':'none'; el('savCurrent').style.display=type==='Fixed Deposit'?'none':'block'; el('sipSection').style.display=type==='Fixed Deposit'?'none':'flex'; if(el('sipDisclaimer')) el('sipDisclaimer').style.display=type==='Fixed Deposit'?'none':'block'; }
@@ -632,7 +635,7 @@ input,select{width:100%;padding:18px;margin-bottom:16px;border-radius:16px;borde
             else if(t.type==='split'){ mSp+=t.myShare; uCat.add("🍴 Splits"); cMap["🍴 Splits"]=(cMap["🍴 Splits"]||0)+t.myShare; if(['All Expenses','🍴 Splits','Splits'].includes(activeCategoryFilter)) fTx.push(t); }
         });
 
-        if(!Object.keys(db.categoryLimits).length) el('categoryBudgetsContainer').innerHTML=`<div class="empty-state-card"><div class="empty-state-title">No Limits Set</div></div>`;
+        if(!Object.keys(db.categoryLimits).length) el('categoryBudgetsContainer').innerHTML=`<div class="empty-state-card"><div class="empty-state-icon">📊</div><div class="empty-state-title">No Limits</div></div>`;
         else { let bH=''; for(const[c,l] of Object.entries(db.categoryLimits)){ if(l>0){ const s=cMap[c]||0, p=Math.min(s/l*100,100); bH+=`<div class="cat-budget-card"><div class="cat-budget-header"><span>${c}</span><span>₹${s.toLocaleString()} / ₹${l.toLocaleString()}</span></div><div class="progress-bg"><div class="progress-fill ${p>90?'danger':p>75?'warning':''}" style="width:${p}%"></div></div></div>`; } } el('categoryBudgetsContainer').innerHTML=bH; }
 
         el('categoryFilterContainer').innerHTML = `<div class="cat-pill ${activeCategoryFilter==='All Expenses'?'active':''}" onclick="setFilter('All Expenses')">All</div><div class="cat-pill ${activeCategoryFilter==='Splits'?'active':''}" onclick="setFilter('Splits')" style="color:var(--info);">Splits</div><div class="cat-pill ${activeCategoryFilter==='Income'?'active':''}" onclick="setFilter('Income')">Income</div><div class="cat-pill ${activeCategoryFilter==='Repayments'?'active':''}" onclick="setFilter('Repayments')">Repays</div>` + Array.from(uCat).sort().map(c=>`<div class="cat-pill ${activeCategoryFilter===c?'active':''}" onclick="setFilter('${c}')">${c}</div>`).join('');
@@ -651,8 +654,31 @@ input,select{width:100%;padding:18px;margin-bottom:16px;border-radius:16px;borde
         el('displaySpent').innerText = `₹${mSp.toLocaleString()}`;
         if(db.target>0 && mSp>db.target) { el('displaySpent').style.color="var(--danger)"; el('homeTargetStatus').style.display="inline-block"; } else { el('displaySpent').style.color="var(--text)"; el('homeTargetStatus').style.display="none"; }
         
-        let cD=[0,0,0,0,0,0,0]; db.transactions.forEach(t=>{ let a=t.type==='expense'?t.amount:t.type==='split'?t.myShare:0; if(a>0){ const ms=new Date(t.timestamp).getTime(); if(ms>=weekStartMs&&ms<weekStartMs+604800000) cD[new Date(t.timestamp).getDay()]+=a; }});
-        el('chartBars').innerHTML = ['S','M','T','W','T','F','S'].map((l,i)=>`<div class="bar-wrapper" style="width:14%"><div class="bar" style="height:${Math.max(cD[i]/Math.max(...cD,100)*100, 2)}%;background:${(db.target>0&&mSp>db.target)?'var(--danger)':'var(--accent)'};"></div><div class="day-label" style="font-size:9px;">${l}</div></div>`).join('');
+        // Chart Engine Restoration
+        let cData = [], cLabs = [];
+        if(currentChartView === 'day') {
+            cLabs = ['S','M','T','W','T','F','S']; cData = [0,0,0,0,0,0,0];
+            db.transactions.forEach(t=>{ let a=t.type==='expense'?t.amount:t.type==='split'?t.myShare:0; if(a>0){ const ms=new Date(t.timestamp).getTime(); if(ms>=weekStartMs&&ms<weekStartMs+604800000) cData[new Date(t.timestamp).getDay()]+=a; }});
+        } else if(currentChartView === 'week') {
+            cLabs = ['W1','W2','W3','W4','W5']; cData = [0,0,0,0,0];
+            db.transactions.forEach(t=>{ let a=t.type==='expense'?t.amount:t.type==='split'?t.myShare:0; if(a>0){ const d=new Date(t.timestamp); if(d.getFullYear()===currentYear&&d.getMonth()===now.getMonth()) cData[Math.min(Math.floor((d.getDate()-1)/7),4)]+=a; }});
+        } else if(currentChartView === 'month') {
+            cLabs = ['J','F','M','A','M','J','J','A','S','O','N','D']; cData = new Array(12).fill(0);
+            db.transactions.forEach(t=>{ let a=t.type==='expense'?t.amount:t.type==='split'?t.myShare:0; if(a>0){ const d=new Date(t.timestamp); if(d.getFullYear()===currentYear) cData[d.getMonth()]+=a; }});
+        } else if(currentChartView === 'year') {
+            cLabs = [currentYear-2, currentYear-1, currentYear]; cData = [0,0,0];
+            db.transactions.forEach(t=>{ let a=t.type==='expense'?t.amount:t.type==='split'?t.myShare:0; if(a>0){ const y=new Date(t.timestamp).getFullYear(); if(y===currentYear-2) cData[0]+=a; else if(y===currentYear-1) cData[1]+=a; else if(y===currentYear) cData[2]+=a; }});
+        }
+
+        const cMax = Math.max(...cData, 100);
+        const bCol = (db.target>0 && mSp>db.target) ? 'var(--danger)' : 'var(--accent)';
+        const fmt = v => v>=1000 ? (v/1000).toFixed(1).replace('.0','')+'k' : v;
+        
+        el('chartBars').innerHTML = cLabs.map((l,i)=>{
+            const v = cData[i]; const h = Math.max((v/cMax)*100, 2);
+            return `<div class="bar-wrapper" style="width:${100/cLabs.length}%"><div style="font-size:9px;color:var(--subtext);margin-bottom:4px;font-weight:700;">${v>0?fmt(v):''}</div><div class="bar" style="height:${h}%;background:${bCol};"></div><div class="day-label" style="font-size:9px;">${l}</div></div>`;
+        }).join('');
+        document.querySelectorAll('.chart-toggle').forEach(e => e.classList.remove('active')); el('toggle-'+currentChartView).classList.add('active');
         
         const dL = db.target>0?Math.floor(db.target/daysInMonth):0;
         el('spendToday').innerText=`₹${tSp.toLocaleString()}`; el('spendToday').style.color=(db.target>0&&tSp>dL)?"var(--danger)":"var(--text)";
