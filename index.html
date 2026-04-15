@@ -622,10 +622,10 @@ input:focus,select:focus{outline:none;border-color:var(--info);box-shadow:0 0 0 
         }
     }
 
-    function saveCashBalance() { db.startingCashBalance = num('startingCashBalance')||0; saveDb(); calculateStats(); renderSavingsTab(); alert("Cash Balance Updated"); }
-    function openSettings() { el('monthlyTargetAmount').value=db.target||''; el('startingCashBalance').value=db.startingCashBalance||''; populateDropdowns(); el('settingsModal').classList.add('active'); }
-    function saveIncomeFromSettings() { const a=num('incomeAmount'); if(!a) return alert("Enter amount."); db.transactions.push({id:Date.now(), type:'income', amount:a, title:val('incomeTitle')||'Income', paymentMethod:val('incomeBankSelect')||'cash', month:getCurrentMonthId(), timestamp:new Date().toISOString()}); saveDb(); el('incomeAmount').value=''; el('incomeTitle').value=''; closeModal(null,'settingsModal',true); calculateStats(); alert("Logged."); }
-    function saveTargetFromSettings() { db.target=num('monthlyTargetAmount'); saveDb(); calculateStats(); alert("Target updated."); }
+    function saveCashBalance() { db.startingCashBalance = num('startingCashBalance')||0; saveDb(); calculateStats(); renderSavingsTab(); closeModal(null,'settingsModal',true); alert("Cash Balance Updated"); }
+    function openSettings() { el('monthlyTargetAmount').value=db.target||''; el('startingCashBalance').value=db.startingCashBalance||''; el('incomeAmount').value=''; el('incomeTitle').value=''; populateDropdowns(); el('settingsModal').classList.add('active'); }
+    function saveIncomeFromSettings() { const a=num('incomeAmount'); if(!a) return alert("Enter amount."); db.transactions.push({id:Date.now(), type:'income', amount:a, title:val('incomeTitle')||'Income', paymentMethod:val('incomeBankSelect')||'cash', month:getCurrentMonthId(), timestamp:new Date().toISOString()}); saveDb(); closeModal(null,'settingsModal',true); calculateStats(); renderSavingsTab(); alert("Logged."); }
+    function saveTargetFromSettings() { db.target=num('monthlyTargetAmount'); saveDb(); calculateStats(); closeModal(null,'settingsModal',true); alert("Target updated."); }
     
     function openCategoryModal() { renderCategorySettings(); el('categoryModal').classList.add('active'); }
     function renderCategorySettings() { el('categoryListContainer').innerHTML = db.categories.map((c,i)=>`<div class="cat-list-item"><span style="flex:1;">${c}</span><input type="number" onchange="updateCatLimit('${c}',this.value)" value="${db.categoryLimits[c]||''}" style="width:80px;padding:12px;margin:0 10px 0 0;"><button onclick="deleteCategory(${i})" style="background:none;border:none;color:var(--danger);font-size:20px;padding:8px;">🗑️</button></div>`).join(''); }
@@ -661,7 +661,7 @@ input:focus,select:focus{outline:none;border-color:var(--info);box-shadow:0 0 0 
         const cMonth = getCurrentMonthId(); const today = new Date().getDate();
 
         if(!db.creditCards.length) ccCon.innerHTML=`<div class="empty-state-card"><div class="empty-state-icon">💳</div><div class="empty-state-title">No Cards</div></div>`;
-        else ccCon.innerHTML=db.creditCards.map(c=>{ const u=Math.max(0,(c.initialUtilized||0)+(bal.ccUsage[c.id]||0)), pct=Math.min(u/c.limit*100,100), cls=pct>80?'danger':pct>50?'warning':''; return `<div class="credit-card-ui" onclick="editCreditCard(${c.id})"><div class="cc-name"><span class="truncate">${c.name}</span>💳</div><div class="cc-details"><div><div class="cc-label">Utilized</div><div class="cc-val">₹${u.toLocaleString()}</div></div><div style="text-align:right;"><div class="cc-label">Limit</div><div class="cc-val" style="color:rgba(255,255,255,0.7);">₹${c.limit.toLocaleString()}</div></div></div><div class="progress-bg"><div class="progress-fill ${cls}" style="width:${pct}%"></div></div></div>`; }).join('');
+        else ccCon.innerHTML=db.creditCards.map(c=>{ const u=Math.max(0,(c.initialUtilized||0)+(bal.ccUsage[c.id]||0)), pct=Math.min(u/c.limit*100,100), cls=pct>80?'danger':pct>50?'warning':''; return `<div class="credit-card-ui" onclick="editCreditCard(${c.id})"><div class="cc-name"><span class="truncate">${c.name}</span>💳</div><div class="cc-details"><div><div class="cc-label">Utilized</div><div class="cc-val">₹${u.toLocaleString('en-IN')}</div></div><div style="text-align:right;"><div class="cc-label">Limit</div><div class="cc-val" style="color:rgba(255,255,255,0.7);">₹${c.limit.toLocaleString('en-IN')}</div></div></div><div class="progress-bg"><div class="progress-fill ${cls}" style="width:${pct}%"></div></div></div>`; }).join('');
         
         if(!db.loans.length) lCon.innerHTML=`<div class="empty-state-card"><div class="empty-state-icon">🏦</div><div class="empty-state-title">No Loans</div></div>`;
         else lCon.innerHTML=db.loans.map(l=>{ 
@@ -671,10 +671,10 @@ input:focus,select:focus{outline:none;border-color:var(--info);box-shadow:0 0 0 
             
             let statusHtml = ''; let payBtn = '';
             if(isPaid) statusHtml = `<span class="status-badge status-paid">✅ Paid</span>`;
-            else if(isOverdue) { statusHtml = `<span class="status-badge status-overdue">⚠️ Overdue (${l.emiDate||1}th)</span>`; payBtn = `<button class="btn-pay-emi" onclick="event.stopPropagation(); openPayEmiModal(${l.id})">Pay ₹${l.emi.toLocaleString()} EMI</button>`; }
-            else { statusHtml = `<span class="status-badge status-due">🟠 Due (${l.emiDate||1}th)</span>`; payBtn = `<button class="btn-pay-emi" onclick="event.stopPropagation(); openPayEmiModal(${l.id})">Pay ₹${l.emi.toLocaleString()} EMI</button>`; }
+            else if(isOverdue) { statusHtml = `<span class="status-badge status-overdue">⚠️ Overdue (${l.emiDate||1}th)</span>`; payBtn = `<button class="btn-pay-emi" onclick="event.stopPropagation(); openPayEmiModal(${l.id})">Pay ₹${l.emi.toLocaleString('en-IN')} EMI</button>`; }
+            else { statusHtml = `<span class="status-badge status-due">🟠 Due (${l.emiDate||1}th)</span>`; payBtn = `<button class="btn-pay-emi" onclick="event.stopPropagation(); openPayEmiModal(${l.id})">Pay ₹${l.emi.toLocaleString('en-IN')} EMI</button>`; }
 
-            return `<div class="loan-card" onclick="editLoan(${l.id})"><div class="loan-header"><div class="loan-name truncate">🏦 ${l.name}</div>${statusHtml}</div><div class="loan-stats"><div>Prin: <span class="loan-val">₹${p.toLocaleString()}</span></div><div>Int: <span class="loan-val">${l.rate}%</span></div><div>Tenure: <span class="loan-val">${l.tenure}M</span></div><div>EMI: <span class="loan-val" style="color:var(--danger);">₹${l.emi.toLocaleString()}</span></div></div>${payBtn}</div>`; 
+            return `<div class="loan-card" onclick="editLoan(${l.id})"><div class="loan-header"><div class="loan-name truncate">🏦 ${l.name}</div>${statusHtml}</div><div class="loan-stats"><div>Prin: <span class="loan-val">₹${p.toLocaleString('en-IN')}</span></div><div>Int: <span class="loan-val">${l.rate}%</span></div><div>Tenure: <span class="loan-val">${l.tenure}M</span></div><div>EMI: <span class="loan-val" style="color:var(--danger);">₹${l.emi.toLocaleString('en-IN')}</span></div></div>${payBtn}</div>`; 
         }).join('');
     }
 
@@ -688,16 +688,16 @@ input:focus,select:focus{outline:none;border-color:var(--info);box-shadow:0 0 0 
         if(!n||!i) return alert("Fields required.");
         if(selectedSavingsType!=='Fixed Deposit'){ if(!c&&c!==0) return alert("Current value needed."); const sa=num('savSipAmount'), sd=num('savSipDate'); if((sa&&!sd)||(!sa&&sd)) return alert("Need SIP amount and date."); if(sd&&(sd<1||sd>31)) return alert("Invalid date."); } else { c=0; }
         let alloc=null, fds=null, fdt=null;
-        if(selectedSavingsType==='NPS'){ const e=num('npsE'), cc=num('npsC'), g=num('npsG'); if(e+cc+g!==100) return alert("NPS=100%"); alloc={e,c:cc,g}; }
-        if(selectedSavingsType==='Fixed Deposit'){ fds=val('fdStartDate'); fdt=num('fdTenure'); if(!fds||!fdt) return alert("FD params needed."); }
+        if(selectedSavingsType==='NPS'){ const e=num('npsE'), cc=num('npsC'), g=num('npsG'); if(e+cc+g!==100) return alert("NPS Allocations must total exactly 100%. Check your E, C, and G values."); alloc={e,c:cc,g}; }
+        if(selectedSavingsType==='Fixed Deposit'){ fds=val('fdStartDate'); fdt=num('fdTenure'); if(!fds||!fdt) return alert("Booking Date and Tenure are required for Fixed Deposits."); }
         const obj = {id:editingSavingsId||Date.now(), type:selectedSavingsType, icon:selectedSavingsIcon, name:n, invested:i, current:c, rate:r, allocations:alloc, sipAmount:num('savSipAmount')||null, sipDate:num('savSipDate')||null, fdStartDate:fds, fdTenure:fdt, paymentMethod:pm, isHistorical:savIsHistorical};
         if(editingSavingsId) db.savings[db.savings.findIndex(x=>x.id===editingSavingsId)]=obj; else db.savings.push(obj); saveDb(); closeModal(null,'addSavingsModal',true); renderSavingsTab(); calculateStats();
     }
-    function deleteSavings() { if(confirm("Delete without returning cash?")) { db.savings=db.savings.filter(s=>s.id!==editingSavingsId); saveDb(); closeModal(null,'addSavingsModal',true); renderSavingsTab(); calculateStats(); } }
+    function deleteSavings() { if(confirm("Delete this asset? This will completely remove it from history without adding the cash back to your bank account. Use 'Liquidate & Redeem' if you sold it.")) return; db.savings=db.savings.filter(s=>s.id!==editingSavingsId); saveDb(); closeModal(null,'addSavingsModal',true); renderSavingsTab(); calculateStats(); }
     function redeemSavings() {
         const s=db.savings.find(x=>x.id===editingSavingsId); if(!s) return; let sug=s.current;
         if(s.type==='Fixed Deposit'&&s.fdStartDate) sug=Math.round(s.invested*Math.pow(1+((s.rate||0)/100), Math.max(0,(Date.now()-new Date(s.fdStartDate).getTime())/86400000)/365));
-        const amt=Number(prompt(`Liquidate [${s.name}]: Enter received amount ₹`, sug)); if(!amt||amt<=0) return;
+        const amt=Number(prompt(`LIQUIDATE ASSET\n\nEnter the final cash amount deposited into your bank account for [${s.name}]:`, sug)); if(!amt||amt<=0) return;
         db.transactions.push({id:Date.now(), type:'income', amount:amt, title:`Liquidation: ${s.name}`, category:'Asset Liquidation', paymentMethod:s.paymentMethod||'cash', month:getCurrentMonthId(), timestamp:new Date().toISOString()});
         db.savings=db.savings.filter(x=>x.id!==editingSavingsId); saveDb(); closeModal(null,'addSavingsModal',true); renderSavingsTab(); calculateStats(); alert(`₹${amt} added to Income.`);
     }
@@ -709,13 +709,14 @@ input:focus,select:focus{outline:none;border-color:var(--info);box-shadow:0 0 0 
         let tI=0, tC=0, sCon=el('savingsContainer');
         el('assetFilterContainer').innerHTML = `<div class="cat-pill ${activeAssetFilter==='All Assets'?'active':''}" onclick="setAssetFilter('All Assets')">All Assets</div>` + Array.from(new Set(db.savings.map(s=>s.type))).sort().map(c=>`<div class="cat-pill ${activeAssetFilter===c?'active':''}" onclick="setAssetFilter('${c}')">${c}</div>`).join('');
         const filt = activeAssetFilter==='All Assets' ? db.savings : db.savings.filter(s=>s.type===activeAssetFilter);
-        if(!filt.length) sCon.innerHTML=`<div class="empty-state-card"><div class="empty-state-icon">📈</div><div class="empty-state-title">No Assets</div></div>`;
+        if(!filt.length) sCon.innerHTML=`<div class="empty-state-card"><div class="empty-state-icon">📈</div><div class="empty-state-title">No Assets Found</div><div class="empty-state-sub">Tap the + button to track investments</div></div>`;
         else sCon.innerHTML = filt.map(s=>{
             let c=s.current, badge='';
             if(s.type==='Fixed Deposit'&&s.fdStartDate){ const d=Math.max(0,(Date.now()-new Date(s.fdStartDate).getTime())/86400000); c=Math.round(s.invested*Math.pow(1+((s.rate||0)/100),d/365)); const m=new Date(s.fdStartDate); m.setMonth(m.getMonth()+s.fdTenure); badge=`<div style="font-size:11px;color:var(--subtext);margin-top:4px;font-weight:600;">Matures: ${m.toLocaleDateString('en-GB')}</div>`; }
-            const p=((c-s.invested)/s.invested*100).toFixed(1), rText=s.rate?`<span style="font-size:11px;color:var(--subtext);">(${s.rate}%)</span>`:'';
-            let sB=''; if(s.sipAmount&&s.sipDate) sB=`<div style="font-size:11px;color:var(--info);margin-top:4px;font-weight:700;">🔄 SIP: ₹${s.sipAmount.toLocaleString('en-IN')} on Day ${s.sipDate}</div>`;
-            return `<div class="expense-item" onclick="editSavings(${s.id})"><div class="expense-row-main"><div class="expense-left"><div class="icon-box">${s.icon}</div><div><div class="title truncate" style="max-width:140px;">${s.name}</div><div class="date">Inv: ₹${s.invested.toLocaleString('en-IN')} ${rText}</div>${badge}${sB}</div></div><div style="text-align:right;"><div class="amount">₹${c.toLocaleString('en-IN')}</div><div class="return-pill ${c>=s.invested?'pos':'neg'}">${c>=s.invested?'+':''}${p}%</div></div></div></div>`;
+            const p=((c-s.invested)/s.invested*100).toFixed(1), rText=s.rate?`<span style="font-size:11px;color:var(--subtext);margin-left:5px;">(${s.rate}%)</span>`:'';
+            let npsBadge=''; if(s.type==='NPS'&&s.allocations) npsBadge=`<div style="font-size:11px;color:var(--subtext);margin-top:4px;font-weight:600;">E: ${s.allocations.e}% • C: ${s.allocations.c}% • G: ${s.allocations.g}%</div>`;
+            let sipBadge=''; if(s.sipAmount&&s.sipDate) sipBadge=`<div style="font-size:11px;color:var(--info);margin-top:4px;font-weight:700;">🔄 SIP: ₹${s.sipAmount.toLocaleString('en-IN')} on Day ${s.sipDate}</div>`;
+            return `<div class="expense-item" onclick="editSavings(${s.id})"><div class="expense-row-main"><div class="expense-left"><div class="icon-box">${s.icon}</div><div><div class="title truncate" style="max-width:140px;">${s.name}</div><div class="date">Inv: ₹${s.invested.toLocaleString('en-IN')} ${rText}</div>${badge}${npsBadge}${sipBadge}</div></div><div style="text-align:right;"><div class="amount">₹${c.toLocaleString('en-IN')}</div><div class="return-pill ${c>=s.invested?'pos':'neg'}">${c>=s.invested?'+':''}${p}%</div></div></div></div>`;
         }).join('');
 
         db.savings.forEach(s=>{ let c=s.current; if(s.type==='Fixed Deposit'&&s.fdStartDate) c=Math.round(s.invested*Math.pow(1+((s.rate||0)/100), Math.max(0,(Date.now()-new Date(s.fdStartDate).getTime())/86400000)/365)); tI+=s.invested; tC+=c; });
@@ -751,7 +752,7 @@ input:focus,select:focus{outline:none;border-color:var(--info);box-shadow:0 0 0 
             else if(t.type==='split'){ mSp+=t.myShare; uCat.add("🍴 Splits"); cMap["🍴 Splits"]=(cMap["🍴 Splits"]||0)+t.myShare; if(['All Expenses','🍴 Splits','Splits'].includes(activeCategoryFilter)) fTx.push(t); }
         });
 
-        if(!Object.keys(db.categoryLimits).length) el('categoryBudgetsContainer').innerHTML=`<div class="empty-state-card"><div class="empty-state-icon">📊</div><div class="empty-state-title">No Limits</div></div>`;
+        if(!Object.keys(db.categoryLimits).length) el('categoryBudgetsContainer').innerHTML=`<div class="empty-state-card"><div class="empty-state-icon">📊</div><div class="empty-state-title">No Limits Set</div></div>`;
         else { let bH=''; for(const[c,l] of Object.entries(db.categoryLimits)){ if(l>0){ const s=cMap[c]||0, p=Math.min(s/l*100,100); bH+=`<div class="cat-budget-card"><div class="cat-budget-header"><span>${c}</span><span>₹${s.toLocaleString('en-IN')} / ₹${l.toLocaleString('en-IN')}</span></div><div class="progress-bg"><div class="progress-fill ${p>90?'danger':p>75?'warning':''}" style="width:${p}%"></div></div></div>`; } } el('categoryBudgetsContainer').innerHTML=bH; }
 
         el('categoryFilterContainer').innerHTML = `<div class="cat-pill ${activeCategoryFilter==='All Expenses'?'active':''}" onclick="setFilter('All Expenses')">All</div><div class="cat-pill ${activeCategoryFilter==='Splits'?'active':''}" onclick="setFilter('Splits')" style="color:var(--info);">Splits</div><div class="cat-pill ${activeCategoryFilter==='Income'?'active':''}" onclick="setFilter('Income')">Income</div><div class="cat-pill ${activeCategoryFilter==='Repayments'?'active':''}" onclick="setFilter('Repayments')">Repays</div>` + Array.from(uCat).sort().map(c=>`<div class="cat-pill ${activeCategoryFilter===c?'active':''}" onclick="setFilter('${c}')">${c}</div>`).join('');
