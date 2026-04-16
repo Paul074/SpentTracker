@@ -985,6 +985,15 @@
         <div class="label" style="color:var(--success);">Safe Limit</div>
         <div class="total-number" id="safeDailyLimit" style="font-size:24px;color:var(--success);">₹0</div>
       </div>
+      <!-- Fix: spendWeek and savedMonth widgets were missing from HTML, causing null crash -->
+      <div class="widget-card">
+        <div class="label">Spent This Week</div>
+        <div class="total-number" id="spendWeek" style="font-size:24px;">₹0</div>
+      </div>
+      <div class="widget-card">
+        <div class="label">Saved Month</div>
+        <div class="total-number" id="savedMonth" style="font-size:24px;color:var(--success);">₹0</div>
+      </div>
     </div>
 
     <div class="card" style="padding:24px;text-align:center;">
@@ -1021,6 +1030,13 @@
   <div class="container tab-content" id="savings">
     <div class="header-flex">
       <h2 style="margin:0;font-size:24px;letter-spacing:-0.5px;">Wealth & Assets</h2>
+    </div>
+
+    <!-- Fix: totalSavingsValue and totalSavingsReturn were missing, causing null crash -->
+    <div class="card" style="padding:20px;text-align:center;margin-bottom:16px;">
+      <div class="label">Total Portfolio Value</div>
+      <div class="total-number" id="totalSavingsValue" style="font-size:32px;margin:4px 0;">₹0</div>
+      <div id="totalSavingsReturn" style="font-size:13px;font-weight:700;margin-top:4px;"></div>
     </div>
     
     <div style="display:flex;justify-content:space-between;align-items:center;margin:20px 0 12px;">
@@ -2084,6 +2100,47 @@
     }
     
     function exportExcel() { alert("Exporter optimized for space. Use JSON Backup for full data portability."); }
+
+    // Fix: exportJSONBackup and importJSONBackup were called in HTML but never defined
+    function exportJSONBackup() {
+      const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `kite-backup-${getCurrentMonthId()}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast('📦 Backup exported');
+    }
+
+    function importJSONBackup(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (!imported.transactions) return alert("Invalid backup file.");
+          if (!confirm("This will REPLACE all current data with the backup. Continue?")) return;
+          db = imported;
+          // Ensure all fields exist after import
+          if (!db.categories) db.categories = [...defaultCategories];
+          if (!db.categoryLimits) db.categoryLimits = {};
+          if (!db.recurringOverheads) db.recurringOverheads = [];
+          if (!db.creditCards) db.creditCards = [];
+          if (!db.loans) db.loans = [];
+          if (!db.savings) db.savings = [];
+          if (!db.bankAccounts) db.bankAccounts = [];
+          if (db.startingCashBalance === undefined) db.startingCashBalance = 0;
+          saveDb();
+          showToast('✅ Backup restored');
+          location.reload();
+        } catch(err) {
+          alert("Failed to read backup file. Make sure it is a valid .json file.");
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = ''; // reset so same file can be re-imported
+    }
     function calculateSIP(m, y, r) { if(m <= 0) return 0; const mr = r / 12 / 100, mo = y * 12; return Math.round(m * ((Math.pow(1 + mr, mo) - 1) / mr) * (1 + mr)); }
 
     function calculateStats() {
