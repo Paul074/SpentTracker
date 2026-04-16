@@ -850,6 +850,57 @@
       font-weight: 500;
     }
 
+    /* Agent 3: Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 160px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #1c1c1e;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 700;
+      z-index: 999;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Agent 3: Tooltip for truncated titles */
+    .title[title] { cursor: default; }
+
+    /* Agent 3: RESET button safer style — subtle and less prominent */
+    .reset-badge {
+      font-size: 11px;
+      font-weight: 800;
+      background: transparent;
+      color: var(--subtext);
+      padding: 6px 10px;
+      border-radius: 8px;
+      letter-spacing: 0.5px;
+      border: 1px solid var(--border);
+    }
+
+    /* Agent 3: Auto-calculate share helper button */
+    .calc-share-btn {
+      width: 100%;
+      padding: 12px;
+      background: var(--info-light);
+      color: var(--info);
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-bottom: 14px;
+    }
     /* Desktop View Constraint */
     @media (min-width: 600px) {
       body { background-color: #e5e5ea; }
@@ -860,12 +911,13 @@
 </head>
 <body>
 
+  <div id="toastMsg" class="toast"></div>
+
   <div class="container tab-content active" id="home">
     <div class="header-flex">
       <h2 style="margin:0;font-size:24px;letter-spacing:-0.5px;">Dashboard</h2>
       <div class="header-actions">
         <button class="icon-btn" onclick="openWealthModal()">💡</button>
-        <button class="icon-btn" onclick="resetDatabase()"><span class="reset-badge">RESET</span></button>
         <button class="icon-btn" onclick="openSettings()">⚙️</button>
       </div>
     </div>
@@ -1023,6 +1075,8 @@
         <div class="label" style="margin-bottom:12px;">Bill Details</div>
         <input type="number" id="splitTotalAmount" placeholder="Total Bill Paid ₹">
         <input type="number" id="splitMyShare" placeholder="My Personal Share ₹">
+        <!-- Agent 3: Auto-calculate my share button -->
+        <button class="calc-share-btn" onclick="autoCalcMyShare()">⚡ Auto-calculate My Share = Total − Friends' Sum</button>
         <input type="text" id="splitTitle" placeholder="Event / Restaurant">
         
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;margin-bottom:10px;">
@@ -1089,6 +1143,12 @@
         <button class="btn-secondary" onclick="exportJSONBackup()" style="margin-top:0;">Export (.json)</button>
         <button class="btn-secondary" onclick="document.getElementById('importFile').click()">Restore (.json)</button>
         <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importJSONBackup(event)">
+      </div>
+      <!-- Agent 3: RESET moved here — far from everyday actions -->
+      <div style="border-top:1px solid var(--border);margin-top:30px;padding-top:20px;">
+        <div class="label" style="color:var(--danger);margin-bottom:6px;">Danger Zone</div>
+        <div style="font-size:12px;color:var(--subtext);margin-bottom:12px;font-weight:500;">This will permanently delete ALL your data. Cannot be undone.</div>
+        <button class="btn-danger" onclick="resetDatabase()" style="margin-top:0;">🗑️ Reset All Data</button>
       </div>
     </div>
   </div>
@@ -1229,6 +1289,28 @@
   </div>
 
   <script>
+    // Agent 3: Toast notification function
+    function showToast(msg) {
+      const t = el('toastMsg');
+      t.innerText = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    // Agent 3: Auto-calculate my share from split total minus friends' sum
+    function autoCalcMyShare() {
+      const tot = num('splitTotalAmount');
+      if(!tot) return alert("Enter Total Bill amount first.");
+      let sum = 0;
+      document.querySelectorAll('.split-debtor-row').forEach(row => {
+        const a = Number(row.querySelector('.deb-amount').value) || 0;
+        sum += a;
+      });
+      const myShare = tot - sum;
+      if(myShare < 0) return alert("Friends' total exceeds the bill amount.");
+      el('splitMyShare').value = myShare.toFixed(2);
+    }
+
     // Helper Functions
     const el = id => document.getElementById(id);
     const val = id => el(id).value;
@@ -1458,7 +1540,14 @@
       el('entryType').disabled = true; 
       toggleFields();
       
-      if(tx.type === 'split') {
+      if(tx.type === 'income') {
+        el('entryType').value = 'expense'; // income is logged via Settings; show read-only view
+        el('amount').value = tx.amount;
+        el('title').value = tx.title;
+        el('expCategory').style.display = 'none';
+        el('recurringToggle').style.display = 'none';
+        // Agent 2 Fix: income entries are read-only in this modal — show delete only
+      } else if(tx.type === 'split') {
         el('splitTotalAmount').value = tx.amount; 
         el('splitMyShare').value = tx.myShare; 
         el('splitTitle').value = tx.title; 
@@ -1548,7 +1637,8 @@
         });
         
         if(!recs.length) return alert("Add friend."); 
-        if(myS + sum !== tot) return alert("Math error: Sum must equal total.");
+        // Agent 2 Fix: floating point tolerance — strict !== fails on e.g. 33.33*3=99.99 vs 100
+        if(Math.abs(myS + sum - tot) > 0.5) return alert(`Math error: ₹${(myS + sum).toFixed(2)} ≠ ₹${tot}. Shares must equal total.`);
         
         if(editingId) { 
           const i = db.transactions.findIndex(t => t.id === editingId); 
@@ -1586,6 +1676,7 @@
       
       saveDb(); 
       closeModal(null, 'inputModal', true); 
+      showToast('✅ Entry saved');
       calculateStats(); 
       renderCreditTab(); 
       renderSavingsTab(); 
@@ -1597,6 +1688,7 @@
         db.transactions = db.transactions.filter(t => t.id !== editingId); 
         saveDb(); 
         closeModal(null, 'inputModal', true); 
+        showToast('🗑️ Entry deleted');
         calculateStats(); 
         renderCreditTab(); 
         renderSavingsTab(); 
@@ -1679,6 +1771,7 @@
       }); 
       saveDb(); 
       closeModal(null, 'settingsModal', true); 
+      showToast('💰 Income saved');
       calculateStats(); 
       renderSavingsTab(); 
     }
@@ -1738,6 +1831,7 @@
 
     /* Credit Cards */
     function openAddCardModal() { editingCreditId = null; el('cardModalTitle').innerText = "Add Card"; el('ccName').value = ''; el('ccLimit').value = ''; el('ccUtilized').value = ''; el('deleteCardBtn').style.display = 'none'; el('addCardModal').classList.add('active'); }
+    // Agent 2 Fix: editCreditCard must also explicitly reset state to prevent stale UI
     function editCreditCard(id) { editingCreditId = id; const c = db.creditCards.find(x => x.id === id); if(c) { el('cardModalTitle').innerText = "Edit Card"; el('ccName').value = c.name; el('ccLimit').value = c.limit; el('ccUtilized').value = c.initialUtilized || 0; el('deleteCardBtn').style.display = 'block'; el('addCardModal').classList.add('active'); } }
     function saveCreditCard() { 
       const n = val('ccName').trim(), l = num('ccLimit'), u = num('ccUtilized') || 0; 
@@ -1895,21 +1989,21 @@
           }); 
         }
       }
-      saveDb(); closeModal(null, 'addSavingsModal', true); renderSavingsTab(); calculateStats();
+      saveDb(); closeModal(null, 'addSavingsModal', true); showToast('📈 Asset saved'); renderSavingsTab(); calculateStats();
     }
     
     function deleteSavings() { 
       if(confirm("Delete this asset? This will completely remove it from history.")) { 
         db.savings = db.savings.filter(s => s.id !== editingSavingsId); 
         db.transactions = db.transactions.filter(t => t.linkedAssetId !== editingSavingsId);
-        saveDb(); closeModal(null, 'addSavingsModal', true); renderSavingsTab(); calculateStats(); 
+        saveDb(); closeModal(null, 'addSavingsModal', true); showToast('🗑️ Asset deleted'); renderSavingsTab(); calculateStats(); 
       } 
     }
     
     function redeemSavings() {
       const s = db.savings.find(x => x.id === editingSavingsId); if(!s) return; 
       let sug = s.current;
-      if(s.type === 'Fixed Deposit' && s.fdStartDate) sug = Math.round(s.invested * Math.pow(1 + ((s.rate || 0) / 100), Math.max(0, (Date.now() - new Date(s.fdStartDate).getTime()) / 86400000) / 365));
+      if(s.type === 'Fixed Deposit' && s.fdStartDate) sug = Math.round(s.invested * Math.pow(1 + ((s.rate || 0) / 400), Math.max(0, (Date.now() - new Date(s.fdStartDate).getTime()) / 86400000) / 91.25));
       const amt = Number(prompt(`LIQUIDATE ASSET\n\nEnter the final cash amount deposited into your bank account for [${s.name}]:`, sug)); 
       if(!amt || amt <= 0) return;
       
@@ -1940,7 +2034,8 @@
         let c = Number(s.current) || 0, badge = '';
         if(s.type === 'Fixed Deposit' && s.fdStartDate){ 
           const d = Math.max(0, (Date.now() - new Date(s.fdStartDate).getTime()) / 86400000); 
-          c = Math.round(s.invested * Math.pow(1 + ((s.rate || 0) / 100), d / 365)); 
+          // Agent 1 Fix: Indian FDs compound quarterly, not annually. Formula: P*(1+r/400)^(d/91.25)
+          c = Math.round(s.invested * Math.pow(1 + ((s.rate || 0) / 400), d / 91.25)); 
           const m = new Date(s.fdStartDate); m.setMonth(m.getMonth() + s.fdTenure); 
           badge = `<div style="font-size:11px;color:var(--subtext);margin-top:4px;font-weight:600;">Matures: ${m.toLocaleDateString('en-GB')}</div>`; 
         }
@@ -2007,7 +2102,8 @@
       db.savings.forEach(s => { 
         let v = Number(s.current) || 0; 
         if(s.type === 'Fixed Deposit' && s.fdStartDate) {
-          v = Math.round(s.invested * Math.pow(1 + ((s.rate || 0) / 100), Math.max(0, (Date.now() - new Date(s.fdStartDate).getTime()) / 86400000) / 365)); 
+          // Agent 1 Fix: quarterly compounding for FD
+          v = Math.round(s.invested * Math.pow(1 + ((s.rate || 0) / 400), Math.max(0, (Date.now() - new Date(s.fdStartDate).getTime()) / 86400000) / 91.25)); 
         }
         tAst += v; 
       });
@@ -2037,19 +2133,22 @@
         if(t.type === 'split') bH = Number(t.myShare) || 0; 
         
         if(bH > 0){ 
-          const ms = new Date(t.timestamp).getTime(); 
-          if(ms >= weekStartMs) wSp += bH; 
-          if(ms >= todayStartMs) tSp += bH; 
+          const ms = new Date(t.timestamp).getTime();
+          // Agent 1 Fix: restrict week/today spend to current month only to avoid cross-month overflow
+          if(t.month === cMonth && ms >= weekStartMs) wSp += bH;
+          if(t.month === cMonth && ms >= todayStartMs) tSp += bH;
         }
       });
       
       db.transactions.filter(t => t.month === cMonth).sort((a,b) => b.id - a.id).forEach(t => {
         if(t.type === 'income'){ 
           mInc += (Number(t.amount) || 0); 
-          if(['Income','All Expenses'].includes(activeCategoryFilter)) fTx.push(t); 
+          // Agent 4 Fix: Income must NOT appear in "All Expenses" — only when Income filter is explicitly selected
+          if(activeCategoryFilter === 'Income') fTx.push(t); 
         }
         else if(t.type === 'repayment'){ 
-          if(['Repayments','All Expenses'].includes(activeCategoryFilter)) fTx.push(t); 
+          // Agent 4 Fix: Repayments are not expenses — only show when Repayments filter is active
+          if(activeCategoryFilter === 'Repayments') fTx.push(t); 
         }
         else if(t.type === 'expense'){ 
           mSp += (Number(t.amount) || 0); 
@@ -2108,7 +2207,7 @@
                 <div class="expense-row-main">
                   <div class="expense-left">
                     <div class="icon-box" style="color:var(--success);background:var(--success-light);">💵</div>
-                    <div><div class="title truncate" style="max-width:140px;">${t.title} ${sB}</div><div class="date">${dStr}</div></div>
+                    <div><div class="title truncate" title="${t.title}" style="max-width:140px;">${t.title} ${sB}</div><div class="date">${dStr}</div></div>
                   </div>
                   <div class="amount" style="color:var(--success);">+₹${fmtN(t.amount)}</div>
                 </div>
@@ -2140,7 +2239,7 @@
                 <div class="expense-row-main">
                   <div class="expense-left">
                     <div class="icon-box" style="color:var(--info);background:var(--info-light);">🍕</div>
-                    <div><div class="title truncate" style="max-width:140px;">${t.title} ${sB}</div><div class="date">${dStr}</div></div>
+                    <div><div class="title truncate" title="${t.title}" style="max-width:140px;">${t.title} ${sB}</div><div class="date">${dStr}</div></div>
                   </div>
                   <div class="amount">₹${fmtN(t.myShare)}<div style="font-size:10px;color:var(--subtext);">My Share</div></div>
                 </div>
@@ -2153,7 +2252,7 @@
               <div class="expense-row-main">
                 <div class="expense-left">
                   <div class="icon-box">${(t.category || '🏷️').split(' ')[0]}</div>
-                  <div><div class="title truncate" style="max-width:140px;">${t.title} ${sB}</div><div class="date">${dStr}</div></div>
+                  <div><div class="title truncate" title="${t.title}" style="max-width:140px;">${t.title} ${sB}</div><div class="date">${dStr}</div></div>
                 </div>
                 <div class="amount">₹${fmtN(t.amount)}</div>
               </div>
@@ -2186,7 +2285,8 @@
             if(a > 0){ const d = new Date(t.timestamp); if(d.getFullYear() === currentYear && d.getMonth() === now.getMonth()) cData[Math.min(Math.floor((d.getDate() - 1) / 7), 4)] += (a || 0); }
           }); 
         } else if(currentChartView === 'month') { 
-          cLabs = ['J','F','M','A','M','J','J','A','S','O','N','D']; cData = new Array(12).fill(0); 
+          // Agent 3 Fix: use 3-letter month labels — 'J','J','M' are ambiguous on mobile
+          cLabs = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; cData = new Array(12).fill(0); 
           db.transactions.forEach(t => { 
             let a = t.type === 'expense' ? Number(t.amount) : t.type === 'split' ? Number(t.myShare) : 0; 
             if(a > 0){ const d = new Date(t.timestamp); if(d.getFullYear() === currentYear) cData[d.getMonth()] += (a || 0); }
@@ -2239,8 +2339,8 @@
       el('savedMonth').innerText = `₹${fmtN(mSav)}`; 
       el('savedMonth').style.color = mSav >= 0 ? "var(--success)" : "var(--danger)";
       
-      el('sipDisplay').innerText = `₹${mSav > 0 ? fmtN(calculateSIP(mSav, 10, 12)) : 0}`; 
-      el('sipRealDisplay').innerText = `₹${mSav > 0 ? fmtN(calculateSIP(mSav, 10, (((1.12)/(1.06)) - 1) * 100)) : 0}`;
+      el('sipDisplay').innerText = mSav > 0 ? `₹${fmtN(calculateSIP(mSav, 10, 12))}` : (mInc === 0 ? '⚠️ Log income first' : '₹0');
+      el('sipRealDisplay').innerText = mSav > 0 ? `₹${fmtN(calculateSIP(mSav, 10, (((1.12)/(1.06)) - 1) * 100))}` : (mInc === 0 ? '⚠️ Log income first' : '₹0');
     }
     
     init();
