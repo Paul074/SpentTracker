@@ -423,7 +423,7 @@ body {
   position: fixed;
   bottom: 24px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(0);
   background: #ffffff;
   padding: 6px;
   border-radius: 32px;
@@ -433,6 +433,14 @@ body {
   border: 1px solid #d1d1d6;
   z-index: 90;
   width: max-content;
+  /* P6: smooth hide/show transition */
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.3s ease;
+  opacity: 1;
+}
+.nav-island.hidden {
+  transform: translateX(-50%) translateY(120px);
+  opacity: 0;
+  pointer-events: none;
 }
 
 .nav-item {
@@ -478,6 +486,10 @@ body {
   transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: hidden;
+  /* P7 fix: enables scroll inside modal even when iOS keyboard is open */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .modal-overlay.active {
@@ -1334,7 +1346,16 @@ input:focus, select:focus {
 /* ============================================
    WEALTH / LIGHT MODAL
 ============================================ */
-.wm-modal { padding: 0 0 40px; }
+.wm-modal { padding: 0 0 40px; background: var(--bg); }
+
+/* P9 fix: prevent white bar appearing above dark header on scroll */
+#wealthModal .modal-content {
+  background: var(--bg);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+#wealthModal .modal-content::-webkit-scrollbar { display: none; }
+#wealthModal .modal-content { scrollbar-width: none; }
 
 /* Header — full-bleed dark */
 .wm-header {
@@ -2025,6 +2046,49 @@ input[type=range].wm-slider::-webkit-slider-thumb {
 .ins-type-btn:active { transform: scale(0.96); }
 /* ============================================ */
 
+/* ============================================
+   CUSTOM CONFIRM DIALOG (replaces iOS-broken confirm())
+============================================ */
+.confirm-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+.confirm-overlay.active { display: flex; }
+.confirm-box {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 28px 24px 20px;
+  max-width: 320px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  animation: fadeIn 0.2s ease;
+}
+.confirm-icon { font-size: 36px; margin-bottom: 12px; }
+.confirm-title { font-size: 17px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+.confirm-msg { font-size: 13px; color: var(--subtext); font-weight: 500; line-height: 1.5; margin-bottom: 24px; }
+.confirm-btns { display: flex; gap: 10px; }
+.confirm-btn-cancel {
+  flex: 1; padding: 14px; background: var(--hover); border: none;
+  border-radius: 12px; font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: inherit; color: var(--text);
+}
+.confirm-btn-ok {
+  flex: 1; padding: 14px; background: var(--danger); border: none;
+  border-radius: 12px; font-size: 15px; font-weight: 700;
+  cursor: pointer; font-family: inherit; color: #fff;
+}
+.confirm-btn-ok.warning { background: var(--warning); }
+.confirm-btn-ok.primary { background: var(--accent); }
+/* ============================================ */
+
 /* Desktop View Constraint */
 @media (min-width: 600px) {
   body { background-color: #e5e5ea; }
@@ -2038,6 +2102,22 @@ input[type=range].wm-slider::-webkit-slider-thumb {
 <body>
 
   <div id="toastMsg" class="toast"></div>
+  <!-- importFile at body level — iOS Safari requires file inputs NOT inside modals/scroll containers -->
+  <input type="file" id="importFile" accept=".json" style="position:fixed;top:-100px;left:-100px;opacity:0;width:1px;height:1px;" onchange="importJSONBackup(event)">
+
+  <!-- Custom confirm dialog — replaces iOS PWA-broken window.confirm() -->
+
+  <div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+      <div class="confirm-icon" id="confirmIcon">⚠️</div>
+      <div class="confirm-title" id="confirmTitle">Are you sure?</div>
+      <div class="confirm-msg" id="confirmMsg"></div>
+      <div class="confirm-btns">
+        <button class="confirm-btn-cancel" id="confirmCancel">Cancel</button>
+        <button class="confirm-btn-ok" id="confirmOk">Delete</button>
+      </div>
+    </div>
+  </div>
 
   <div class="container tab-content active" id="home">
 
@@ -2229,17 +2309,17 @@ input[type=range].wm-slider::-webkit-slider-thumb {
 <div class="sm-stats-row">
   <div class="sm-stat">
     <div class="sm-stat-icon">📅</div>
-    <div class="sm-stat-val" id="spendToday">₹0</div>
+    <div class="sm-stat-val" id="smSpendToday">₹0</div>
     <div class="sm-stat-label">Today</div>
   </div>
   <div class="sm-stat">
     <div class="sm-stat-icon">📆</div>
-    <div class="sm-stat-val" id="spendWeek">₹0</div>
+    <div class="sm-stat-val" id="smSpendWeek">₹0</div>
     <div class="sm-stat-label">This Week</div>
   </div>
   <div class="sm-stat">
     <div class="sm-stat-icon">🎯</div>
-    <div class="sm-stat-val" id="safeDailyLimit" style="color:var(--success);">₹0</div>
+    <div class="sm-stat-val" id="smSafeDailyLimit" style="color:var(--success);">₹0</div>
     <div class="sm-stat-label">Daily Limit</div>
   </div>
 </div>
@@ -2422,29 +2502,17 @@ input[type=range].wm-slider::-webkit-slider-thumb {
   <div class="pm-field-label">Policy Name / Insurer</div>
   <input type="text" id="insName" placeholder="e.g. HDFC Ergo Health, LIC Jeevan" class="pm-input">
 
-  <div style="display:flex;gap:10px;">
-    <div style="flex:1;">
-      <div class="pm-field-label">Sum Assured / Coverage ₹</div>
-      <input type="number" id="insCoverage" placeholder="e.g. 500000" class="pm-input" style="margin:0;">
-    </div>
-    <div style="flex:1;">
-      <div class="pm-field-label">Annual Premium ₹</div>
-      <input type="number" id="insPremium" placeholder="e.g. 12000" class="pm-input" style="margin:0;">
-    </div>
-  </div>
-  <div style="height:14px;"></div>
+  <!-- P8 fix: proper stack with full-width inputs, not side-by-side cramped -->
+  <div class="pm-field-label">Sum Assured / Coverage ₹</div>
+  <input type="number" id="insCoverage" placeholder="e.g. 500000" class="pm-input">
+  <div class="pm-field-label">Annual Premium ₹</div>
+  <input type="number" id="insPremium" placeholder="e.g. 12000" class="pm-input">
 
-  <div style="display:flex;gap:10px;">
-    <div style="flex:1;">
-      <div class="pm-field-label">Policy Start Date</div>
-      <input type="date" id="insStartDate" class="pm-input" style="margin:0;">
-    </div>
-    <div style="flex:1;">
-      <div class="pm-field-label">Renewal Date</div>
-      <input type="date" id="insRenewalDate" class="pm-input" style="margin:0;" oninput="updateInsRenewalPreview()">
-    </div>
-  </div>
-  <div style="height:14px;"></div>
+  <!-- P8 fix: date pickers each on own row for clarity, no touching -->
+  <div class="pm-field-label">Policy Start Date</div>
+  <input type="date" id="insStartDate" class="pm-input">
+  <div class="pm-field-label">Renewal / Expiry Date</div>
+  <input type="date" id="insRenewalDate" class="pm-input" onchange="updateInsRenewalPreview()">
 
   <div class="pm-field-label">Policy Number <span style="color:var(--subtext);font-weight:500;">(optional)</span></div>
   <input type="text" id="insPolicyNo" placeholder="For quick reference during claims" class="pm-input">
@@ -2544,7 +2612,7 @@ input[type=range].wm-slider::-webkit-slider-thumb {
   </div>
   
   <button class="btn-main" onclick="saveEntry()">Save</button>
-  <button class="btn-danger" id="deleteBtn" onclick="deleteEntry()">Delete Entry</button>
+  <button class="btn-danger" id="deleteBtn" onclick="deleteEntry()" style="display:none;">Delete Entry</button>
 </div>
 ```
 
@@ -2674,13 +2742,31 @@ input[type=range].wm-slider::-webkit-slider-thumb {
     <div class="st-action-row" onclick="exportJSONBackup()">
       <div class="st-action-icon">📤</div>
       <div class="st-action-text">
-        <div class="st-action-title">Export Backup</div>
-        <div class="st-action-sub">Download all data as .json file</div>
+        <div class="st-action-title">Export Backup (.json)</div>
+        <div class="st-action-sub">Full data backup — restore anytime</div>
       </div>
       <div class="st-action-arrow">›</div>
     </div>
 
-    <div class="st-action-row" onclick="document.getElementById('importFile').click()">
+    <div class="st-action-row" onclick="exportExcelCSV()">
+      <div class="st-action-icon">📊</div>
+      <div class="st-action-text">
+        <div class="st-action-title">Export to Excel (.csv)</div>
+        <div class="st-action-sub">All transactions, monthly summary & category breakdown — opens in Excel</div>
+      </div>
+      <div class="st-action-arrow">›</div>
+    </div>
+
+    <div class="st-action-row" onclick="exportITR()">
+      <div class="st-action-icon">🏛️</div>
+      <div class="st-action-text">
+        <div class="st-action-title">Export ITR Summary (.csv)</div>
+        <div class="st-action-sub">Income & expense statement formatted for ITR filing</div>
+      </div>
+      <div class="st-action-arrow">›</div>
+    </div>
+
+    <div class="st-action-row" id="restoreBackupRow">
       <div class="st-action-icon">📥</div>
       <div class="st-action-text">
         <div class="st-action-title">Restore Backup</div>
@@ -2688,7 +2774,6 @@ input[type=range].wm-slider::-webkit-slider-thumb {
       </div>
       <div class="st-action-arrow">›</div>
     </div>
-    <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importJSONBackup(event)">
 
     <div style="border-top:1px solid var(--border);margin-top:20px;padding-top:20px;">
       <div class="st-danger-label">⚠️ Danger Zone</div>
@@ -2760,15 +2845,17 @@ input[type=range].wm-slider::-webkit-slider-thumb {
       <input type="number" id="ccUtilized" placeholder="Amount already due before tracking" class="pm-input" oninput="updateCcPreview()">
 
 ```
-  <!-- Billing cycle dates -->
+  <!-- Billing cycle dates — P4 fix: calendar date pickers -->
   <div style="display:flex;gap:10px;">
     <div style="flex:1;">
-      <div class="pm-field-label">Statement Date <span style="color:var(--subtext);font-weight:500;">(day of month)</span></div>
-      <input type="number" id="ccStatementDate" placeholder="e.g. 5" min="1" max="31" class="pm-input" style="margin:0;" oninput="updateCcDueBadge()">
+      <div class="pm-field-label">Statement Date</div>
+      <input type="date" id="ccStatementDate" class="pm-input" style="margin:0;" onchange="updateCcDueBadge()">
+      <div class="pm-hint" style="margin-top:4px;">Pick any past date on the statement day</div>
     </div>
     <div style="flex:1;">
-      <div class="pm-field-label">Payment Due Date <span style="color:var(--subtext);font-weight:500;">(day of month)</span></div>
-      <input type="number" id="ccDueDate" placeholder="e.g. 25" min="1" max="31" class="pm-input" style="margin:0;" oninput="updateCcDueBadge()">
+      <div class="pm-field-label">Payment Due Date</div>
+      <input type="date" id="ccDueDate" class="pm-input" style="margin:0;" onchange="updateCcDueBadge()">
+      <div class="pm-hint" style="margin-top:4px;">Pick next upcoming due date</div>
     </div>
   </div>
   <div style="height:14px;"></div>
@@ -2830,8 +2917,8 @@ input[type=range].wm-slider::-webkit-slider-thumb {
           <input type="number" id="loanTenure" placeholder="e.g. 180" class="pm-input" oninput="updateLoanPreview()">
         </div>
       </div>
-      <div class="pm-field-label">EMI Due Date (1–31)</div>
-      <input type="number" id="loanDueDate" placeholder="Day of month EMI is due" min="1" max="31" class="pm-input">
+      <div class="pm-field-label">Next EMI Due Date <span style="color:var(--subtext);font-weight:500;">(pick from calendar)</span></div>
+      <input type="date" id="loanDueDate" class="pm-input">
       <!-- Live EMI preview -->
       <div class="pm-preview-card" id="loanPreview" style="display:none;">
         <div class="pm-preview-row">
@@ -3052,6 +3139,7 @@ input[type=range].wm-slider::-webkit-slider-thumb {
     <div class="wm-tab"        id="wmTab-sip"       onclick="switchWmTab('sip')">📈 SIP</div>
     <div class="wm-tab"        id="wmTab-budget"    onclick="switchWmTab('budget')">🎯 Budget</div>
     <div class="wm-tab"        id="wmTab-networth"  onclick="switchWmTab('networth')">🏦 Net Worth</div>
+    <div class="wm-tab"        id="wmTab-emergency" onclick="switchWmTab('emergency')">🛡️ Emergency</div>
     <div class="wm-tab"        id="wmTab-tips"      onclick="switchWmTab('tips')">💬 Tips</div>
   </div>
 
@@ -3093,13 +3181,23 @@ input[type=range].wm-slider::-webkit-slider-thumb {
       <div class="wm-sip-note" id="wmSipNote">Based on this month's savings</div>
     </div>
 
-    <!-- Interactive slider -->
+    <!-- Interactive slider + P9: manual input box -->
     <div class="wm-slider-wrap">
       <div class="wm-slider-header">
         <span class="wm-slider-title">What If I invest...</span>
         <span class="wm-slider-val" id="wmSliderDisplay">₹0/mo</span>
       </div>
+      <!-- P9 fix: manual input so user can type any amount directly -->
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;">
+        <input type="number" id="wmSipManualInput" placeholder="Type any amount e.g. 5000"
+          class="pm-input" style="margin:0;flex:1;font-size:15px;"
+          oninput="onSipManualInput(this.value)">
+        <span style="font-size:13px;color:var(--subtext);font-weight:600;white-space:nowrap;">/month</span>
+      </div>
       <input type="range" class="wm-slider" id="wmSipSlider" min="500" max="50000" step="500" value="1000" oninput="updateSipSlider(this.value)">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:rgba(255,255,255,0.3);font-weight:600;margin-top:4px;">
+        <span>₹500</span><span>₹50,000</span>
+      </div>
     </div>
 
     <!-- SIP projection table -->
@@ -3178,6 +3276,58 @@ input[type=range].wm-slider::-webkit-slider-thumb {
     <div class="wm-row-card"><span class="wm-row-label">Months to Zero Debt</span><span class="wm-row-val" id="wmDebtMonths">—</span></div>
   </div>
 
+  <!-- ── TAB: EMERGENCY FUND ── -->
+  <div class="wm-section" id="wmSection-emergency">
+    <!-- Result hero -->
+    <div class="wm-sip-hero" style="margin-bottom:14px;">
+      <div class="wm-sip-label">EMERGENCY FUND NEEDED</div>
+      <div class="wm-sip-amount" id="wmEmgResult" style="color:#f87171;">₹0</div>
+      <div class="wm-sip-note" id="wmEmgNote">Fill in details below</div>
+    </div>
+    <!-- Inputs -->
+    <div class="pm-preview-card" style="background:var(--card);border-color:var(--border);">
+      <div style="margin-bottom:12px;">
+        <div class="pm-field-label" style="color:var(--subtext);">Family Members</div>
+        <input type="number" id="wmEmgMembers" placeholder="e.g. 4" class="pm-input" style="margin:0;" oninput="calcEmergencyFund()">
+      </div>
+      <div style="margin-bottom:12px;">
+        <div class="pm-field-label" style="color:var(--subtext);">Monthly Household Expenses ₹</div>
+        <input type="number" id="wmEmgExpense" placeholder="Auto-filled from this month" class="pm-input" style="margin:0;" oninput="calcEmergencyFund()">
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:12px;">
+        <div style="flex:1;">
+          <div class="pm-field-label" style="color:var(--subtext);">Safety Months</div>
+          <select id="wmEmgMonths" class="pm-input" style="margin:0;" onchange="calcEmergencyFund()">
+            <option value="3">3 months (Basic)</option>
+            <option value="6" selected>6 months (Recommended)</option>
+            <option value="9">9 months (Conservative)</option>
+            <option value="12">12 months (Aggressive)</option>
+          </select>
+        </div>
+        <div style="flex:1;">
+          <div class="pm-field-label" style="color:var(--subtext);">Inflation Rate %</div>
+          <input type="number" id="wmEmgInflation" placeholder="6" value="6" class="pm-input" style="margin:0;" oninput="calcEmergencyFund()">
+        </div>
+      </div>
+    </div>
+    <!-- Breakdown -->
+    <div class="wm-row-card"><span class="wm-row-label">Monthly expense × months</span><span class="wm-row-val" id="wmEmgBase">₹0</span></div>
+    <div class="wm-row-card"><span class="wm-row-label">Inflation-adjusted (1yr buffer)</span><span class="wm-row-val" id="wmEmgInflated">₹0</span></div>
+    <div class="wm-row-card"><span class="wm-row-label">You currently have (liquid)</span><span class="wm-row-val" id="wmEmgHave">₹0</span></div>
+    <div class="wm-row-card">
+      <span class="wm-row-label">Gap to fill</span>
+      <span class="wm-row-val" id="wmEmgGap" style="font-size:16px;font-weight:900;">₹0</span>
+    </div>
+    <div id="wmEmgProgressWrap" style="margin-top:4px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--subtext);margin-bottom:5px;">
+        <span>Fund coverage</span><span id="wmEmgPct">0%</span>
+      </div>
+      <div style="background:var(--hover);height:10px;border-radius:5px;overflow:hidden;">
+        <div id="wmEmgBar" style="height:100%;border-radius:5px;background:var(--success);transition:width 0.6s ease;width:0%;"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── TAB: TIPS ── -->
   <div class="wm-section" id="wmSection-tips">
     <div id="wmTipsContainer"></div>
@@ -3197,17 +3347,40 @@ input[type=range].wm-slider::-webkit-slider-thumb {
       setTimeout(() => t.classList.remove('show'), 2200);
     }
 
+    // Custom confirm — replaces window.confirm() which is blocked in iOS PWA standalone mode
+    function showConfirm(opts) {
+      // opts: { icon, title, msg, okLabel, okClass, onOk }
+      const overlay = el('confirmOverlay');
+      el('confirmIcon').innerText  = opts.icon    || '⚠️';
+      el('confirmTitle').innerText = opts.title   || 'Are you sure?';
+      el('confirmMsg').innerText   = opts.msg     || '';
+      const okBtn = el('confirmOk');
+      okBtn.innerText   = opts.okLabel  || 'Confirm';
+      okBtn.className   = 'confirm-btn-ok ' + (opts.okClass || '');
+      overlay.classList.add('active');
+      // Wire buttons — clone to clear old listeners
+      const newOk = okBtn.cloneNode(true);
+      okBtn.parentNode.replaceChild(newOk, okBtn);
+      const newCancel = el('confirmCancel').cloneNode(true);
+      el('confirmCancel').parentNode.replaceChild(newCancel, el('confirmCancel'));
+      newOk.addEventListener('click', () => {
+        overlay.classList.remove('active');
+        opts.onOk();
+      });
+      newCancel.addEventListener('click', () => overlay.classList.remove('active'));
+    }
+
     // Agent 3: Auto-calculate my share from split total minus friends' sum
     function autoCalcMyShare() {
       const tot = num('splitTotalAmount');
-      if(!tot) return alert("Enter Total Bill amount first.");
+      if(!tot) { showToast('⚠️ "Enter Total Bill amount first."'); return; }
       let sum = 0;
       document.querySelectorAll('.split-debtor-row').forEach(row => {
         const a = Number(row.querySelector('.deb-amount').value) || 0;
         sum += a;
       });
       const myShare = tot - sum;
-      if(myShare < 0) return alert("Friends' total exceeds the bill amount.");
+      if(myShare < 0) { showToast('⚠️ "Friends\' total exceeds the bill amount."'); return; }
       el('splitMyShare').value = myShare.toFixed(2);
     }
 
@@ -3286,6 +3459,22 @@ input[type=range].wm-slider::-webkit-slider-thumb {
     }
 
     function setFilter(cat) { activeCategoryFilter = cat; calculateStats(); }
+    // Recent Activity filter — pure event delegation on data-filter attribute
+    // Handles all filter pills including emoji categories safely on iOS
+    document.addEventListener('click', function(e) {
+      const pill = e.target.closest('[data-filter]');
+      if(pill && pill.closest('#categoryFilterContainer')) {
+        e.preventDefault();
+        setFilter(pill.dataset.filter);
+      }
+    });
+    document.addEventListener('touchend', function(e) {
+      const pill = e.target.closest('[data-filter]');
+      if(pill && pill.closest('#categoryFilterContainer')) {
+        e.preventDefault();
+        setFilter(pill.dataset.filter);
+      }
+    }, {passive: false});
     function setAssetFilter(type) { activeAssetFilter = type; renderSavingsTab(); }
     function setChartView(view) { currentChartView = view; calculateStats(); }
 
@@ -3314,10 +3503,16 @@ input[type=range].wm-slider::-webkit-slider-thumb {
     }
 
     function resetDatabase() { 
-      if(!confirm("⚠️ Reset ALL data?")) return; 
-      db = { transactions: [], categories: [...defaultCategories], categoryLimits: {}, target: 0, creditCards: [], loans: [], savings: [], recurringOverheads: [], bankAccounts: [], startingCashBalance: 0 }; 
-      saveDb(); 
-      location.reload(); 
+      showConfirm({
+        icon: '💀', title: 'Reset ALL Data?',
+        msg: 'This permanently deletes every transaction, account, loan, and setting. Cannot be undone.',
+        okLabel: 'Reset Everything', okClass: '',
+        onOk: () => {
+          db = { transactions: [], categories: [...defaultCategories], categoryLimits: {}, target: 0, creditCards: [], loans: [], savings: [], recurringOverheads: [], bankAccounts: [], startingCashBalance: 0, insurances: [] };
+          saveDb();
+          location.reload();
+        }
+      });
     }
 
     function getDerivedBalances() {
@@ -3522,7 +3717,7 @@ input[type=range].wm-slider::-webkit-slider-thumb {
         const myS = num('splitMyShare');
         const tit = val('splitTitle') || "Split Bill"; 
         
-        if(!tot) return alert("Amount needed.");
+        if(!tot) { showToast('⚠️ "Amount needed."'); return; }
         
         let recs = [], sum = 0;
         document.querySelectorAll('.split-debtor-row').forEach(row => {
@@ -3539,9 +3734,9 @@ input[type=range].wm-slider::-webkit-slider-thumb {
           }
         });
         
-        if(!recs.length) return alert("Add friend."); 
+        if(!recs.length) { showToast('⚠️ "Add friend."'); return; } 
         // Agent 2 Fix: floating point tolerance — strict !== fails on e.g. 33.33*3=99.99 vs 100
-        if(Math.abs(myS + sum - tot) > 0.5) return alert(`Math error: ₹${(myS + sum).toFixed(2)} ≠ ₹${tot}. Shares must equal total.`);
+        if(Math.abs(myS + sum - tot) > 0.5) { showToast('⚠️ `Math error: ₹${(myS + sum).toFixed(2)} ≠ ₹${tot}. Shares must equal total.`'); return; }
         
         if(editingId) { 
           const i = db.transactions.findIndex(t => t.id === editingId); 
@@ -3553,18 +3748,18 @@ input[type=range].wm-slider::-webkit-slider-thumb {
         }
       } else {
         const amt = num('amount'); 
-        if(!amt) return alert("Amount needed.");
+        if(!amt) { showToast('⚠️ "Amount needed."'); return; }
         
         const tit = val('title') || type;
         const cat = type === 'expense' ? val('expCategory') : '';
         const repT = type === 'repayment' ? val('repaymentTarget') : null;
         
-        if(type === 'repayment' && !repT) return alert("Select debt.");
+        if(type === 'repayment' && !repT) { showToast('⚠️ "Select debt."'); return; }
         
         let rId = null; 
         if(!editingId && type === 'expense' && el('isRecurring').checked) { 
           const d = num('recurringDate'); 
-          if(!d || d < 1 || d > 31) return alert("Invalid date."); 
+          if(!d || d < 1 || d > 31) { showToast('⚠️ "Invalid date."'); return; } 
           rId = Date.now() + "R"; 
           db.recurringOverheads.push({id: rId, title: tit, amount: amt, category: cat, paymentMethod: pm, date: d}); 
         }
@@ -3587,16 +3782,21 @@ input[type=range].wm-slider::-webkit-slider-thumb {
     }
 
     function deleteEntry() { 
-      if(confirm("Delete entry?")) { 
-        db.transactions = db.transactions.filter(t => t.id !== editingId); 
-        saveDb(); 
-        closeModal(null, 'inputModal', true); 
-        showToast('🗑️ Entry deleted');
-        calculateStats(); 
-        renderCreditTab(); 
-        renderSavingsTab(); 
-        populateDropdowns(); 
-      } 
+      showConfirm({
+        icon: '🗑️', title: 'Delete Entry?',
+        msg: 'This transaction will be permanently removed.',
+        okLabel: 'Delete', okClass: '',
+        onOk: () => {
+          db.transactions = db.transactions.filter(t => t.id !== editingId);
+          saveDb();
+          closeModal(null, 'inputModal', true);
+          showToast('🗑️ Entry deleted');
+          calculateStats();
+          renderCreditTab();
+          renderSavingsTab();
+          populateDropdowns();
+        }
+      });
     }
 
     function openSettleModal(txId, recId) { 
@@ -3626,20 +3826,27 @@ input[type=range].wm-slider::-webkit-slider-thumb {
     
     function absorbDebt() {
       if(!pendingSettleTxId || !pendingSettleRecId) return;
-      if(!confirm("Absorb this debt? It will permanently become your personal expense.")) return;
-      const i = db.transactions.findIndex(t => t.id === pendingSettleTxId);
-      if(i > -1 && db.transactions[i].receivables) {
-        const rI = db.transactions[i].receivables.findIndex(r => r.id === pendingSettleRecId);
-        if(rI > -1) {
-          db.transactions[i].myShare += (Number(db.transactions[i].receivables[rI].amount) || 0);
-          db.transactions[i].receivables.splice(rI, 1);
-          saveDb(); 
-          closeModal(null, 'settleModal', true); 
-          calculateStats(); 
-          renderSavingsTab(); 
-          populateDropdowns();
+      showConfirm({
+        icon: '💸', title: 'Absorb This Debt?',
+        msg: 'This amount will permanently become your personal expense.',
+        okLabel: 'Absorb', okClass: 'warning',
+        onOk: () => {
+          const i = db.transactions.findIndex(t => t.id === pendingSettleTxId);
+          if(i > -1 && db.transactions[i].receivables) {
+            const rI = db.transactions[i].receivables.findIndex(r => r.id === pendingSettleRecId);
+            if(rI > -1) {
+              db.transactions[i].myShare += (Number(db.transactions[i].receivables[rI].amount) || 0);
+              db.transactions[i].receivables.splice(rI, 1);
+              saveDb();
+              closeModal(null, 'settleModal', true);
+              showToast('💸 Debt absorbed');
+              calculateStats();
+              renderSavingsTab();
+              populateDropdowns();
+            }
+          }
         }
-      }
+      });
     }
 
     /* Settings & Configuration */
@@ -3696,13 +3903,17 @@ input[type=range].wm-slider::-webkit-slider-thumb {
       db.startingCashBalance = num('startingCashBalance') || 0; 
       saveDb(); 
       calculateStats(); 
-      renderSavingsTab(); 
+      renderSavingsTab();
+      // P2 fix: refresh settings live stats after wallet save
+      const bal2 = getDerivedBalances();
+      const sc = el('stCashLive'); if(sc){ sc.innerText = '₹' + fmtN(bal2.cashWallet); sc.style.color = bal2.cashWallet < 0 ? 'var(--danger)' : 'var(--text)'; }
+      showToast('💵 Cash balance saved');
       closeModal(null, 'settingsModal', true); 
     }
     
     function saveIncomeFromSettings() { 
       const a = num('incomeAmount'); 
-      if(!a) return alert("Enter amount."); 
+      if(!a) { showToast('⚠️ "Enter amount."'); return; } 
       db.transactions.push({
         id: Date.now(), 
         type: 'income', 
@@ -3722,7 +3933,12 @@ input[type=range].wm-slider::-webkit-slider-thumb {
     function saveTargetFromSettings() { 
       db.target = num('monthlyTargetAmount'); 
       saveDb(); 
-      calculateStats(); 
+      calculateStats();
+      // P1 fix: refresh budget live stats in settings panel immediately
+      const stB = el('stCurrentBudget'); if(stB) stB.innerText = db.target > 0 ? '₹' + fmtN(db.target) : 'Not set';
+      const now2 = new Date(); const dim = new Date(now2.getFullYear(), now2.getMonth()+1, 0).getDate();
+      const stD = el('stDailyLimitLive'); if(stD) stD.innerText = db.target > 0 ? '₹' + fmtN(Math.floor(db.target/dim)) : '—';
+      showToast('🎯 Budget target saved');
       closeModal(null, 'settingsModal', true); 
     }
     
@@ -3749,15 +3965,20 @@ input[type=range].wm-slider::-webkit-slider-thumb {
       } 
     }
     function deleteCategory(i) { 
-      if(confirm("Delete category?")) { 
-        const c = db.categories[i]; 
-        db.categories.splice(i, 1); 
-        delete db.categoryLimits[c]; 
-        saveDb(); 
-        populateCategorySelects(); 
-        renderCategorySettings(); 
-        calculateStats(); 
-      } 
+      const c = db.categories[i];
+      showConfirm({
+        icon: '🏷️', title: 'Delete Category?',
+        msg: `"${c}" will be removed. Existing transactions keep their category label.`,
+        okLabel: 'Delete', okClass: '',
+        onOk: () => {
+          db.categories.splice(i, 1);
+          delete db.categoryLimits[c];
+          saveDb();
+          populateCategorySelects();
+          renderCategorySettings();
+          calculateStats();
+        }
+      });
     }
 
     // Live CC utilization preview
@@ -3806,12 +4027,23 @@ input[type=range].wm-slider::-webkit-slider-thumb {
     function editBankAccount(id) { editingBankId = id; const b = db.bankAccounts.find(x => x.id === id); if(b) { el('bankModalTitle').innerText = "Edit Bank"; el('bankName').value = b.name; el('bankStartingBalance').value = b.startingBalance; el('deleteBankBtn').style.display = 'block'; el('addBankModal').classList.add('active'); } }
     function saveBankAccount() { 
       const n = val('bankName').trim(), b = num('bankStartingBalance') || 0; 
-      if(!n) return alert("Name needed."); 
+      if(!n) { showToast('⚠️ "Name needed."'); return; } 
       if(editingBankId) { const i = db.bankAccounts.findIndex(x => x.id === editingBankId); db.bankAccounts[i] = {id: editingBankId, name: n, startingBalance: b}; } 
       else db.bankAccounts.push({id: Date.now(), name: n, startingBalance: b}); 
       saveDb(); populateDropdowns(); closeModal(null, 'addBankModal', true); renderSavingsTab(); calculateStats(); 
     }
-    function deleteBankAccount() { if(confirm("Remove?")) { db.bankAccounts = db.bankAccounts.filter(b => b.id !== editingBankId); saveDb(); populateDropdowns(); closeModal(null, 'addBankModal', true); renderSavingsTab(); calculateStats(); } }
+    function deleteBankAccount() {
+      showConfirm({
+        icon: '🏦', title: 'Remove Bank Account?',
+        msg: 'This account and its balance tracking will be removed.',
+        okLabel: 'Remove', okClass: '',
+        onOk: () => {
+          db.bankAccounts = db.bankAccounts.filter(b => b.id !== editingBankId);
+          saveDb(); populateDropdowns(); closeModal(null, 'addBankModal', true);
+          renderSavingsTab(); calculateStats(); showToast('🗑️ Account removed');
+        }
+      });
+    }
 
     /* Credit Cards */
     function openAddCardModal() { 
@@ -3828,9 +4060,10 @@ input[type=range].wm-slider::-webkit-slider-thumb {
       editingCreditId = id; const c = db.creditCards.find(x => x.id === id); 
       if(c) { 
         el('cardModalTitle').innerText = "Edit Card"; 
-        el('ccName').value = c.name; el('ccLimit').value = c.limit; el('ccUtilized').value = c.initialUtilized || 0; 
-        el('ccStatementDate').value = c.statementDate || '';
-        el('ccDueDate').value = c.dueDate || '';
+        el('ccName').value = c.name; el('ccLimit').value = c.limit; el('ccUtilized').value = c.initialUtilized || 0;
+        // P4: restore stored date strings to date inputs
+        el('ccStatementDate').value = c.statementDateStr || '';
+        el('ccDueDate').value = c.dueDateStr || '';
         el('deleteCardBtn').style.display = 'block'; 
         el('addCardModal').classList.add('active'); 
         updateCcPreview(); updateCcDueBadge();
@@ -3838,32 +4071,45 @@ input[type=range].wm-slider::-webkit-slider-thumb {
     }
     function saveCreditCard() { 
       const n = val('ccName').trim(), l = num('ccLimit'), u = num('ccUtilized') || 0;
-      const sd = num('ccStatementDate') || 0, dd = num('ccDueDate') || 0;
-      if(!n || !l) return alert("Card name and limit are required."); 
-      if(sd && (sd < 1 || sd > 31)) return alert("Statement date must be 1–31.");
-      if(dd && (dd < 1 || dd > 31)) return alert("Due date must be 1–31.");
-      const cardObj = { name: n, limit: l, initialUtilized: u, statementDate: sd || null, dueDate: dd || null };
+      // P4: extract day-of-month from date picker values
+      const sdStr = el('ccStatementDate').value;
+      const ddStr = el('ccDueDate').value;
+      const sd = sdStr ? new Date(sdStr).getDate() : null;
+      const dd = ddStr ? new Date(ddStr).getDate() : null;
+      if(!n || !l) { showToast('⚠️ "Card name and limit are required."'); return; } 
+      const cardObj = { name: n, limit: l, initialUtilized: u, statementDate: sd, dueDate: dd, statementDateStr: sdStr, dueDateStr: ddStr };
       if(editingCreditId) { const i = db.creditCards.findIndex(x => x.id === editingCreditId); db.creditCards[i] = {id: editingCreditId, ...cardObj}; } 
       else db.creditCards.push({id: Date.now(), ...cardObj}); 
       saveDb(); showToast('💳 Card saved'); populateDropdowns(); closeModal(null, 'addCardModal', true); renderCreditTab(); calculateStats(); 
     }
-    function deleteCreditCard() { if(confirm("Remove this card?")) { db.creditCards = db.creditCards.filter(c => c.id !== editingCreditId); saveDb(); populateDropdowns(); closeModal(null, 'addCardModal', true); renderCreditTab(); calculateStats(); showToast('🗑️ Card removed'); } }
+    function deleteCreditCard() {
+      showConfirm({
+        icon: '💳', title: 'Remove Credit Card?',
+        msg: 'This card and all associated tracking will be removed.',
+        okLabel: 'Remove', okClass: '',
+        onOk: () => {
+          db.creditCards = db.creditCards.filter(c => c.id !== editingCreditId);
+          saveDb(); populateDropdowns(); closeModal(null, 'addCardModal', true);
+          renderCreditTab(); calculateStats(); showToast('🗑️ Card removed');
+        }
+      });
+    }
 
-    // Live due date badge in CC modal
+    // Live due date badge in CC modal — P4 updated for date picker
     function updateCcDueBadge() {
-      const dd = Number(el('ccDueDate').value) || 0;
+      const ddStr = el('ccDueDate').value;
       const badge = el('ccDueBadge');
-      if(!badge || !dd) { if(badge) badge.style.display = 'none'; return; }
+      if(!badge || !ddStr) { if(badge) badge.style.display = 'none'; return; }
       const now = new Date();
-      const today = now.getDate();
-      const year = now.getFullYear(), month = now.getMonth();
-      let dueThis = new Date(year, month, dd);
-      if(dueThis < now) dueThis = new Date(year, month + 1, dd);
-      const daysLeft = Math.ceil((dueThis - now) / 86400000);
+      // Use the actual selected date, then project to next occurrence
+      let dueDate = new Date(ddStr);
+      // If the date is in the past, advance by months until future
+      while(dueDate < now) { dueDate.setMonth(dueDate.getMonth() + 1); }
+      const daysLeft = Math.ceil((dueDate - now) / 86400000);
       badge.style.display = 'block';
-      el('ccDueBadgeDate').innerText = dueThis.toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
+      el('ccDueBadgeDate').innerText = dueDate.toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'});
       badge.className = 'pm-preview-card ' + (daysLeft <= 3 ? 'ins-alert-urgent' : daysLeft <= 7 ? 'ins-alert-warn' : '');
-      el('ccDueBadgeLabel').innerText = daysLeft <= 0 ? '⚠️ Due Today / Overdue' : `📅 Days until payment`;
+      el('ccDueBadgeLabel').innerText = daysLeft <= 0 ? '⚠️ Due Today / Overdue' : '📅 Days until payment';
       el('ccDueBadgeDays').innerText = daysLeft <= 0 ? 'PAY NOW' : daysLeft + ' days';
       el('ccDueBadgeDays').style.color = daysLeft <= 3 ? 'var(--danger)' : daysLeft <= 7 ? 'var(--warning)' : 'var(--success)';
     }
@@ -3882,23 +4128,38 @@ input[type=range].wm-slider::-webkit-slider-thumb {
       if(l) { 
         el('loanModalTitle').innerText = "Edit Loan"; 
         el('loanName').value = l.name; el('loanPrincipal').value = l.initialPrincipal || 0; 
-        el('loanInterest').value = l.rate; el('loanTenure').value = l.tenure; 
-        el('loanDueDate').value = l.emiDate || 1; 
+        el('loanInterest').value = l.rate; el('loanTenure').value = l.tenure;
+        // P4: restore date string to date picker
+        el('loanDueDate').value = l.emiDateStr || '';
         el('deleteLoanBtn').style.display = 'block'; 
         el('addLoanModal').classList.add('active'); 
         updateLoanPreview();
       } 
     }
     function saveLoan() { 
-      const n = val('loanName').trim(), p = num('loanPrincipal'), r = num('loanInterest'), t = num('loanTenure'), d = num('loanDueDate') || 1; 
-      if(!n || !p || !r || !t) return alert("Fields needed."); 
-      if(d < 1 || d > 31) return alert("Date must be 1-31."); 
+      const n = val('loanName').trim(), p = num('loanPrincipal'), r = num('loanInterest'), t = num('loanTenure');
+      const dueDateStr = el('loanDueDate').value;
+      // P4: extract day number from date picker, fallback to 1
+      const d = dueDateStr ? new Date(dueDateStr).getDate() : 1;
+      if(!n || !p || !r || !t) { showToast('⚠️ "All fields required."'); return; }
+      if(d < 1 || d > 31) { showToast('⚠️ "EMI date must be 1–31."'); return; }
       const emi = Math.round(p * (r / 12 / 100) * Math.pow(1 + (r / 12 / 100), t) / (Math.pow(1 + (r / 12 / 100), t) - 1)); 
-      if(editingLoanId) { const i = db.loans.findIndex(x => x.id === editingLoanId); db.loans[i] = {id: editingLoanId, name: n, initialPrincipal: p, rate: r, tenure: t, emi, emiDate: d}; } 
-      else db.loans.push({id: Date.now(), name: n, initialPrincipal: p, rate: r, tenure: t, emi, emiDate: d}); 
-      saveDb(); populateDropdowns(); closeModal(null, 'addLoanModal', true); renderCreditTab(); calculateStats(); 
+      if(editingLoanId) { const i = db.loans.findIndex(x => x.id === editingLoanId); db.loans[i] = {id: editingLoanId, name: n, initialPrincipal: p, rate: r, tenure: t, emi, emiDate: d, emiDateStr: dueDateStr}; } 
+      else db.loans.push({id: Date.now(), name: n, initialPrincipal: p, rate: r, tenure: t, emi, emiDate: d, emiDateStr: dueDateStr}); 
+      saveDb(); showToast('🏦 Loan saved'); populateDropdowns(); closeModal(null, 'addLoanModal', true); renderCreditTab(); calculateStats(); 
     }
-    function deleteLoan() { if(confirm("Remove?")) { db.loans = db.loans.filter(l => l.id !== editingLoanId); saveDb(); populateDropdowns(); closeModal(null, 'addLoanModal', true); renderCreditTab(); calculateStats(); } }
+    function deleteLoan() {
+      showConfirm({
+        icon: '🏦', title: 'Remove Loan?',
+        msg: 'This loan and its EMI history will be permanently removed.',
+        okLabel: 'Remove', okClass: '',
+        onOk: () => {
+          db.loans = db.loans.filter(l => l.id !== editingLoanId);
+          saveDb(); populateDropdowns(); closeModal(null, 'addLoanModal', true);
+          renderCreditTab(); calculateStats(); showToast('🗑️ Loan removed');
+        }
+      });
+    }
 
     function openPayEmiModal(loanId) { pendingEmiLoanId = loanId; populateDropdowns(); el('payEmiModal').classList.add('active'); }
     function confirmPayEmi() {
@@ -3939,12 +4200,18 @@ input[type=range].wm-slider::-webkit-slider-thumb {
           const pct = Math.min(u / limit * 100, 100);
           const fillColor = pct > 80 ? '#f87171' : pct > 50 ? '#fbbf24' : '#4ade80';
 
-          // Due date badge
+          // Due date badge — P4: use stored date string for accurate future projection
           let dueBadgeHtml = '';
-          if(c.dueDate) {
+          if(c.dueDate || c.dueDateStr) {
             const now2 = new Date();
-            let dueDate = new Date(now2.getFullYear(), now2.getMonth(), c.dueDate);
-            if(dueDate < now2) dueDate = new Date(now2.getFullYear(), now2.getMonth() + 1, c.dueDate);
+            let dueDate;
+            if(c.dueDateStr) {
+              dueDate = new Date(c.dueDateStr);
+              while(dueDate < now2) dueDate.setMonth(dueDate.getMonth() + 1);
+            } else {
+              dueDate = new Date(now2.getFullYear(), now2.getMonth(), c.dueDate);
+              if(dueDate < now2) dueDate = new Date(now2.getFullYear(), now2.getMonth() + 1, c.dueDate);
+            }
             const daysLeft = Math.ceil((dueDate - now2) / 86400000);
             const dueDateStr = dueDate.toLocaleDateString('en-IN', {day:'numeric', month:'short'});
             const badgeCls = daysLeft <= 3 ? 'cr-card-due-urgent' : daysLeft <= 7 ? 'cr-card-due-warn' : 'cr-card-due-ok';
@@ -3958,9 +4225,8 @@ input[type=range].wm-slider::-webkit-slider-thumb {
                 </div>
                 <div class="cr-card-due-val" style="color:${dueColor};font-size:12px;">${daysText}</div>
               </div>`;
-            if(c.statementDate) {
-              dueBadgeHtml += `<div class="cr-card-cycle">🗓️ Statement generates on ${c.statementDate}th each month</div>`;
-            }
+            const stDay = c.statementDate || (c.statementDateStr ? new Date(c.statementDateStr).getDate() : null);
+            if(stDay) dueBadgeHtml += `<div class="cr-card-cycle">🗓️ Statement generates on ${stDay}th each month</div>`;
           }
 
           return `
@@ -4100,12 +4366,12 @@ input[type=range].wm-slider::-webkit-slider-thumb {
     function saveSavings() {
       const n = val('savName').trim(), i = num('savInvested'), r = num('savRate') || null, pm = val('savPaymentMethod') || 'cash'; 
       let c = num('savCurrent');
-      if(!n || !i) return alert("Fields required.");
-      if(selectedSavingsType !== 'Fixed Deposit'){ if(!c && c !== 0) return alert("Current value needed."); } else { c = 0; }
+      if(!n || !i) { showToast('⚠️ "Fields required."'); return; }
+      if(selectedSavingsType !== 'Fixed Deposit'){ if(!c && c !== 0) { showToast('⚠️ "Current value needed."'); return; } } else { c = 0; }
       
       let alloc = null, fds = null, fdt = null;
-      if(selectedSavingsType === 'NPS'){ const e = num('npsE'), cc = num('npsC'), g = num('npsG'); if(e + cc + g !== 100) return alert("NPS Allocations must total exactly 100%."); alloc = {e, c: cc, g}; }
-      if(selectedSavingsType === 'Fixed Deposit'){ fds = val('fdStartDate'); fdt = num('fdTenure'); if(!fds || !fdt) return alert("Booking Date and Tenure are required for Fixed Deposits."); }
+      if(selectedSavingsType === 'NPS'){ const e = num('npsE'), cc = num('npsC'), g = num('npsG'); if(e + cc + g !== 100) { showToast('NPS allocations must total 100%'); return; } alloc = {e, c: cc, g}; }
+      if(selectedSavingsType === 'Fixed Deposit'){ fds = val('fdStartDate'); fdt = num('fdTenure'); if(!fds || !fdt) { showToast('Booking date and tenure required for FD'); return; } }
       
       const obj = {
         id: editingSavingsId || Date.now(), type: selectedSavingsType, icon: selectedSavingsIcon, name: n, invested: i, current: c, rate: r, allocations: alloc, fdStartDate: fds, fdTenure: fdt, paymentMethod: pm, isHistorical: savIsHistorical
@@ -4125,23 +4391,51 @@ input[type=range].wm-slider::-webkit-slider-thumb {
     }
     
     function deleteSavings() { 
-      if(confirm("Delete this asset? This will completely remove it from history.")) { 
-        db.savings = db.savings.filter(s => s.id !== editingSavingsId); 
-        db.transactions = db.transactions.filter(t => t.linkedAssetId !== editingSavingsId);
-        saveDb(); closeModal(null, 'addSavingsModal', true); showToast('🗑️ Asset deleted'); renderSavingsTab(); calculateStats(); 
-      } 
+      showConfirm({
+        icon: '📈', title: 'Delete Asset?',
+        msg: 'This investment record and its linked transactions will be permanently removed.',
+        okLabel: 'Delete', okClass: '',
+        onOk: () => {
+          db.savings = db.savings.filter(s => s.id !== editingSavingsId);
+          db.transactions = db.transactions.filter(t => t.linkedAssetId !== editingSavingsId);
+          saveDb(); closeModal(null, 'addSavingsModal', true);
+          showToast('🗑️ Asset deleted'); renderSavingsTab(); calculateStats();
+        }
+      });
     }
     
     function redeemSavings() {
-      const s = db.savings.find(x => x.id === editingSavingsId); if(!s) return; 
-      let sug = s.current;
-      if(s.type === 'Fixed Deposit' && s.fdStartDate) sug = Math.round(s.invested * Math.pow(1 + ((s.rate || 0) / 400), Math.max(0, (Date.now() - new Date(s.fdStartDate).getTime()) / 86400000) / 91.25));
-      const amt = Number(prompt(`LIQUIDATE ASSET\n\nEnter the final cash amount deposited into your bank account for [${s.name}]:`, sug)); 
-      if(!amt || amt <= 0) return;
-      
-      db.transactions.push({id: Date.now(), type: 'income', amount: amt, title: `Liquidation: ${s.name}`, category: 'Asset Liquidation', paymentMethod: s.paymentMethod || 'cash', month: getCurrentMonthId(), timestamp: new Date().toISOString()});
-      db.savings = db.savings.filter(x => x.id !== editingSavingsId); 
-      saveDb(); closeModal(null, 'addSavingsModal', true); renderSavingsTab(); calculateStats(); alert(`₹${fmtN(amt)} added to Income.`);
+      const s = db.savings.find(x => x.id === editingSavingsId); if(!s) return;
+      let sug = s.current || 0;
+      if(s.type === 'Fixed Deposit' && s.fdStartDate)
+        sug = Math.round(s.invested * Math.pow(1 + ((s.rate || 0) / 400), Math.max(0, (Date.now() - new Date(s.fdStartDate).getTime()) / 86400000) / 91.25));
+
+      // Use custom confirm with inline input instead of iOS-blocked prompt()
+      const overlay = el('confirmOverlay');
+      el('confirmIcon').innerText  = '💰';
+      el('confirmTitle').innerText = 'Liquidate ' + s.name;
+      el('confirmMsg').innerHTML   = `Enter the cash amount you actually received:<br><input type="number" id="redeemAmtInput" value="${sug}" style="width:100%;margin-top:10px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);font-size:16px;font-weight:700;font-family:inherit;box-sizing:border-box;color:var(--text);background:var(--card);">`;
+      const okBtn = el('confirmOk');
+      okBtn.innerText = 'Confirm Liquidation';
+      okBtn.className = 'confirm-btn-ok warning';
+      overlay.classList.add('active');
+
+      const newOk = okBtn.cloneNode(true);
+      okBtn.parentNode.replaceChild(newOk, okBtn);
+      const newCancel = el('confirmCancel').cloneNode(true);
+      el('confirmCancel').parentNode.replaceChild(newCancel, el('confirmCancel'));
+
+      newOk.addEventListener('click', () => {
+        const amt = Number((el('redeemAmtInput') || {}).value);
+        if(!amt || amt <= 0) { showToast('⚠️ Enter a valid amount'); return; }
+        overlay.classList.remove('active');
+        db.transactions.push({id: Date.now(), type: 'income', amount: amt, title: `Liquidation: ${s.name}`, category: 'Asset Liquidation', paymentMethod: s.paymentMethod || 'cash', month: getCurrentMonthId(), timestamp: new Date().toISOString()});
+        db.savings = db.savings.filter(x => x.id !== editingSavingsId);
+        saveDb(); closeModal(null, 'addSavingsModal', true);
+        renderSavingsTab(); calculateStats();
+        showToast('💰 ₹' + fmtN(amt) + ' added as income');
+      });
+      newCancel.addEventListener('click', () => overlay.classList.remove('active'));
     }
 
     function renderSavingsTab() {
@@ -4452,6 +4746,16 @@ input[type=range].wm-slider::-webkit-slider-thumb {
             </div>
           </div>`).join('');
 
+        // ── EMERGENCY FUND TAB pre-fill ────────────────────────
+        const emgExp = el('wmEmgExpense');
+        if(emgExp && !emgExp.value) emgExp.value = mSp > 0 ? Math.round(mSp) : '';
+        const emgMem = el('wmEmgMembers');
+        if(emgMem && !emgMem.value) emgMem.value = '1';
+        // Store liquid cash for use in calcEmergencyFund
+        window._wmLiquidCash = lCash;
+        calcEmergencyFund();
+        // ─────────────────────────────────────────────────────
+
         // SIP legacy IDs removed — projections now shown in wmSipTableBody via updateSipSlider
 
         switchWmTab('overview');
@@ -4462,18 +4766,385 @@ input[type=range].wm-slider::-webkit-slider-thumb {
       }
     }
     
-    function exportExcel() { alert("Exporter optimized for space. Use JSON Backup for full data portability."); }
-
-    // Fix: exportJSONBackup and importJSONBackup were called in HTML but never defined
-    function exportJSONBackup() {
-      const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `kite-backup-${getCurrentMonthId()}.json`;
-      a.click();
-      URL.revokeObjectURL(a.href);
-      showToast('📦 Backup exported');
+    // ── EXCEL CSV EXPORT ──────────────────────────────────────
+    function csvRow(cells) {
+      return cells.map(c => {
+        const s = String(c === null || c === undefined ? '' : c);
+        // Always quote if contains comma, quote, newline, or leading/trailing space
+        if(s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r') || s !== s.trim()) {
+          return '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
+      }).join(',') + '\r\n';
     }
+
+    function fmtDate(ts) {
+      // ISO date format — Excel recognizes this reliably
+      if(!ts) return '';
+      const d = new Date(ts);
+      return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+
+    function getPaymentLabel(pm) {
+      if(!pm || pm === 'cash') return 'Cash Wallet';
+      if(pm.startsWith('bank_')) { const b = db.bankAccounts.find(x => x.id == pm.split('_')[1]); return b ? b.name : 'Bank Account'; }
+      if(pm.startsWith('cc_'))   { const c = db.creditCards.find(x => x.id == pm.split('_')[1]);  return c ? c.name + ' (Credit Card)' : 'Credit Card'; }
+      return pm;
+    }
+
+    function getFYLabel() {
+      const now = new Date();
+      const m = now.getMonth() + 1; // 1-12
+      const y = now.getFullYear();
+      // Indian FY: April–March. If before April, FY is previous year
+      return m >= 4 ? y + '-' + (y+1) : (y-1) + '-' + y;
+    }
+
+    // Detect iOS Safari / PWA — these don't support Blob download via anchor click
+    const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const _isStandalone = window.navigator.standalone === true ||
+                          window.matchMedia('(display-mode: standalone)').matches;
+
+    function downloadFile(filename, content, mimeType) {
+      // iOS Safari and PWA standalone: use data URI opened in new tab
+      // User taps Share → Save to Files from there
+      if(_isIOS || _isStandalone) {
+        try {
+          const bom = mimeType.includes('json') ? '' : '\uFEFF';
+          const encoded = encodeURIComponent(bom + content);
+          const dataUri = 'data:' + mimeType + ';charset=utf-8,' + encoded;
+          const a = document.createElement('a');
+          a.href = dataUri;
+          a.download = filename;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          showToast('📄 File opened — tap Share → Save to Files');
+          return;
+        } catch(e) { /* fall through */ }
+      }
+      // All other platforms: Blob + object URL
+      try {
+        const bom = mimeType.includes('json') ? '' : '\uFEFF';
+        const blob = new Blob([bom + content], { type: mimeType + ';charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+      } catch(e) {
+        showToast('⚠️ Download failed — try on desktop Chrome or Firefox');
+      }
+    }
+
+    function exportJSONBackup() {
+      const json = JSON.stringify(db, null, 2);
+      if(_isIOS || _isStandalone) {
+        try {
+          const encoded = encodeURIComponent(json);
+          const a = document.createElement('a');
+          a.href = 'data:application/json;charset=utf-8,' + encoded;
+          a.download = 'kite-backup-' + getCurrentMonthId() + '.json';
+          a.target = '_blank';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          showToast('📄 File opened — tap Share → Save to Files');
+          return;
+        } catch(e) { /* fall through */ }
+      }
+      try {
+        const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'kite-backup-' + getCurrentMonthId() + '.json';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+        showToast('📦 Backup exported');
+      } catch(e) {
+        showToast('⚠️ Export failed — try on desktop browser');
+      }
+    }
+
+    function exportExcelCSV() {
+      const cMonth = getCurrentMonthId();
+      const now = new Date();
+      let csv = '';
+
+      // ─────────────────────────────────────────────────────────
+      // SECTION 1: FILE HEADER
+      // ─────────────────────────────────────────────────────────
+      csv += 'KITE TRACKER — EXPENSE REPORT\r\n';
+      csv += 'Generated,' + fmtDate(now.toISOString()) + '\r\n';
+      csv += 'Total Transactions,' + db.transactions.length + '\r\n';
+      csv += '\r\n';
+
+      // ─────────────────────────────────────────────────────────
+      // SECTION 2: ALL TRANSACTIONS
+      // Numbers unquoted so Excel treats them as numbers for SUM()
+      // ─────────────────────────────────────────────────────────
+      csv += 'ALL TRANSACTIONS\r\n';
+      csv += csvRow(['Date','Month','Type','Title','Category','Amount','My Share','Payment Method','Recurring']);
+
+      const sorted = [...db.transactions].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+      sorted.forEach(t => {
+        const typeLabel = {expense:'Expense', income:'Income', split:'Split Bill', repayment:'Repayment', asset_investment:'Investment'}[t.type] || t.type;
+        const cat = t.category || (t.type==='split' ? 'Split Bill' : t.type==='income' ? 'Income' : t.type==='repayment' ? 'Repayment' : t.type==='asset_investment' ? 'Investment' : 'Other');
+        const amount = Number(t.amount) || 0;
+        const myShare = t.type==='split' ? (Number(t.myShare)||0) : amount;
+        const isRecurring = t.recurringId ? 'Yes' : 'No';
+        csv += csvRow([fmtDate(t.timestamp), t.month||'', typeLabel, t.title||'', cat, amount, myShare, getPaymentLabel(t.paymentMethod), isRecurring]);
+      });
+      csv += '\r\n';
+
+      // ─────────────────────────────────────────────────────────
+      // SECTION 3: MONTHLY SUMMARY
+      // ─────────────────────────────────────────────────────────
+      csv += 'MONTHLY SUMMARY\r\n';
+      csv += csvRow(['Month','Income','Expenses','Savings','Save Rate %','Surplus/Deficit']);
+
+      const monthMap = {};
+      db.transactions.forEach(t => {
+        const m = t.month; if(!m) return;
+        if(!monthMap[m]) monthMap[m] = {inc:0, exp:0};
+        if(t.type==='income') monthMap[m].inc += Number(t.amount)||0;
+        if(t.type==='expense') monthMap[m].exp += Number(t.amount)||0;
+        if(t.type==='split') monthMap[m].exp += Number(t.myShare)||0;
+      });
+      Object.keys(monthMap).sort().forEach(m => {
+        const {inc, exp} = monthMap[m];
+        const saved = inc - exp;
+        const rate = inc > 0 ? Number((saved/inc*100).toFixed(2)) : 0;
+        const label = saved >= 0 ? 'Surplus' : 'Deficit';
+        csv += csvRow([m, inc, exp, saved, rate, label]);
+      });
+      csv += '\r\n';
+
+      // ─────────────────────────────────────────────────────────
+      // SECTION 4: CATEGORY BREAKDOWN (all months)
+      // ─────────────────────────────────────────────────────────
+      csv += 'CATEGORY BREAKDOWN (All Time)\r\n';
+      csv += csvRow(['Category','Total Spent','Transaction Count','Budget Limit','Budget Status','Avg Per Month']);
+
+      const catMapAll = {};
+      const catCountAll = {};
+      const months = new Set();
+      db.transactions.forEach(t => {
+        if(t.type==='expense') {
+          const k = t.category || 'Other';
+          catMapAll[k] = (catMapAll[k]||0) + (Number(t.amount)||0);
+          catCountAll[k] = (catCountAll[k]||0) + 1;
+          if(t.month) months.add(t.month);
+        }
+      });
+      const monthCount = Math.max(months.size, 1);
+      Object.entries(catMapAll).sort((a,b)=>b[1]-a[1]).forEach(([cat, amt]) => {
+        const limit = db.categoryLimits[cat] || 0;
+        const status = limit > 0 ? (amt/monthCount > limit ? 'Over Budget' : 'Within Budget') : 'No Limit Set';
+        csv += csvRow([cat, amt, catCountAll[cat]||0, limit||'', status, Number((amt/monthCount).toFixed(2))]);
+      });
+      csv += '\r\n';
+
+      // ─────────────────────────────────────────────────────────
+      // SECTION 5: ASSETS & INVESTMENTS
+      // ─────────────────────────────────────────────────────────
+      csv += 'ASSETS & INVESTMENTS\r\n';
+      csv += csvRow(['Name','Type','Invested','Current Value','Gain/Loss','Return %','Rate %','Start Date','Maturity']);
+
+      db.savings.forEach(s => {
+        let cv = Number(s.current)||0;
+        let maturity = '';
+        if(s.type==='Fixed Deposit' && s.fdStartDate) {
+          cv = Math.round(s.invested * Math.pow(1+(s.rate||0)/400, Math.max(0,(Date.now()-new Date(s.fdStartDate).getTime())/86400000)/91.25));
+          const m = new Date(s.fdStartDate); m.setMonth(m.getMonth()+(s.fdTenure||0));
+          maturity = fmtDate(m.toISOString());
+        }
+        const gain = cv - (Number(s.invested)||0);
+        const ret = s.invested > 0 ? Number((gain/s.invested*100).toFixed(2)) : 0;
+        csv += csvRow([s.name, s.type, s.invested||0, cv, gain, ret, s.rate||'', s.fdStartDate||s.startDate||'', maturity]);
+      });
+      csv += '\r\n';
+
+      // ─────────────────────────────────────────────────────────
+      // SECTION 6: CREDIT & DEBT
+      // ─────────────────────────────────────────────────────────
+      const bal = getDerivedBalances();
+      csv += 'CREDIT CARDS\r\n';
+      csv += csvRow(['Card Name','Limit','Outstanding Due','Available','Utilization %','Due Date']);
+      db.creditCards.forEach(c => {
+        const u = Math.max(0,(Number(c.initialUtilized)||0)+(bal.ccUsage[c.id]||0));
+        const avail = Math.max(0,(Number(c.limit)||0)-u);
+        const pct = c.limit > 0 ? Number((u/c.limit*100).toFixed(1)) : 0;
+        csv += csvRow([c.name, c.limit||0, u, avail, pct, c.dueDate||'']);
+      });
+      csv += '\r\n';
+
+      csv += 'LOANS\r\n';
+      csv += csvRow(['Loan Name','Principal Remaining','Interest Rate %','EMI','Tenure (Months)','EMI Date']);
+      db.loans.forEach(l => {
+        const remaining = Math.max(0,(Number(l.initialPrincipal)||0)-(bal.loanPaid[l.id]||0));
+        csv += csvRow([l.name, remaining, l.rate||0, l.emi||0, l.tenure||0, l.emiDate||'']);
+      });
+      csv += '\r\n';
+
+      // ─────────────────────────────────────────────────────────
+      // SECTION 7: INSURANCE
+      // ─────────────────────────────────────────────────────────
+      if(db.insurances && db.insurances.length) {
+        csv += 'INSURANCE POLICIES\r\n';
+        csv += csvRow(['Policy Name','Type','Coverage','Annual Premium','Start Date','Renewal Date','Policy No','Members/Nominee']);
+        db.insurances.forEach(p => {
+          csv += csvRow([p.name, p.type, p.coverage||0, p.premium||0, p.startDate||'', p.renewalDate||'', p.policyNo||'', p.members||p.nominee||'']);
+        });
+        csv += '\r\n';
+      }
+
+      // ─────────────────────────────────────────────────────────
+      // SECTION 8: NET WORTH SNAPSHOT
+      // ─────────────────────────────────────────────────────────
+      let tAst = 0;
+      db.savings.forEach(s => {
+        let cv = Number(s.current)||0;
+        if(s.type==='Fixed Deposit'&&s.fdStartDate) cv = Math.round(s.invested*Math.pow(1+(s.rate||0)/400,Math.max(0,(Date.now()-new Date(s.fdStartDate).getTime())/86400000)/91.25));
+        tAst += cv;
+      });
+      let tDebt = 0;
+      db.creditCards.forEach(c => tDebt += Math.max(0,(Number(c.initialUtilized)||0)+(bal.ccUsage[c.id]||0)));
+      db.loans.forEach(l => tDebt += Math.max(0,(Number(l.initialPrincipal)||0)-(bal.loanPaid[l.id]||0)));
+      let lCash = bal.cashWallet;
+      Object.values(bal.bankBalances).forEach(v => lCash += Number(v)||0);
+
+      csv += 'NET WORTH SNAPSHOT\r\n';
+      csv += csvRow(['Item','Value']);
+      csv += csvRow(['Investments', tAst]);
+      csv += csvRow(['Cash + Bank', lCash]);
+      csv += csvRow(['Total Debt', tDebt]);
+      csv += csvRow(['NET WORTH', tAst + lCash - tDebt]);
+
+      downloadFile('kite-tracker-report-' + cMonth + '.csv', csv, 'text/csv');
+      showToast('📊 Excel report downloaded — open with Excel or Google Sheets');
+    }
+
+    // ── ITR EXPORT ────────────────────────────────────────────
+    function exportITR() {
+      const fy = getFYLabel();
+      const now = new Date();
+      // Indian FY: April to March. Determine FY start/end
+      const fyYear = (now.getMonth()+1) >= 4 ? now.getFullYear() : now.getFullYear()-1;
+      const fyStartMs = new Date(fyYear, 3, 1).getTime();   // April 1
+      const fyEndMs   = new Date(fyYear+1, 2, 31, 23, 59, 59).getTime(); // March 31
+
+      const fyTx = db.transactions.filter(t => {
+        const ms = new Date(t.timestamp).getTime();
+        return ms >= fyStartMs && ms <= fyEndMs;
+      });
+
+      let csv = '';
+      csv += 'KITE TRACKER — ITR INCOME & EXPENSE STATEMENT\r\n';
+      csv += 'Financial Year,' + fy + '\r\n';
+      csv += 'Period,' + (fyYear) + '-04-01 to ' + (fyYear+1) + '-03-31\r\n';
+      csv += 'Generated,' + fmtDate(now.toISOString()) + '\r\n';
+      csv += 'DISCLAIMER,This is a personal summary only. Verify with a Chartered Accountant before filing ITR.\r\n\r\n';
+
+      // ── INCOME DETAILS ─────────────────────────────────────
+      csv += 'INCOME SOURCES\r\n';
+      csv += csvRow(['Date','Month','Source / Description','Amount','Account Credited','TDS Deducted (Manual)']);
+      let totalIncome = 0;
+      fyTx.filter(t => t.type==='income').sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp)).forEach(t => {
+        const a = Number(t.amount)||0;
+        csv += csvRow([fmtDate(t.timestamp), t.month||'', t.title||'Income', a, getPaymentLabel(t.paymentMethod), '']);
+        totalIncome += a;
+      });
+      csv += csvRow(['','','TOTAL GROSS INCOME', totalIncome, '', '']);
+      csv += '\r\n';
+
+      // ── EXPENSE DETAILS ────────────────────────────────────
+      csv += 'EXPENSE DETAILS\r\n';
+      csv += csvRow(['Date','Month','Description','Category','Amount','Payment Method','Business Expense?']);
+      let totalExp = 0;
+      fyTx.filter(t => t.type==='expense'||t.type==='split').sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp)).forEach(t => {
+        const a = t.type==='split'?(Number(t.myShare)||0):(Number(t.amount)||0);
+        csv += csvRow([fmtDate(t.timestamp), t.month||'', t.title||'', t.category||'', a, getPaymentLabel(t.paymentMethod), '']);
+        totalExp += a;
+      });
+      csv += csvRow(['','','','TOTAL EXPENSES', totalExp, '', '']);
+      csv += '\r\n';
+
+      // ── CATEGORY SUMMARY ───────────────────────────────────
+      csv += 'EXPENSES BY CATEGORY\r\n';
+      csv += csvRow(['Category','Total (₹)','% of Expenses','Section 80 Relevance']);
+      const sec80 = {
+        '💊 Health':        'Sec 80D — Health Insurance Premium / Medical',
+        '📚 Education':     'Sec 80E — Education Loan Interest',
+        '🏠 Home Loan':     'Sec 24(b) — Home Loan Interest',
+        '🏦 PPF':           'Sec 80C — PPF Contribution',
+        '🏛️ EPF':           'Sec 80C — EPF Contribution',
+        'NPS':              'Sec 80CCD(1B) — NPS Additional Deduction',
+        'Life Insurance':   'Sec 80C — Life Insurance Premium',
+      };
+      const catMapFY = {};
+      fyTx.filter(t => t.type==='expense').forEach(t => {
+        const k = t.category || 'Other';
+        catMapFY[k] = (catMapFY[k]||0) + (Number(t.amount)||0);
+      });
+      Object.entries(catMapFY).sort((a,b)=>b[1]-a[1]).forEach(([cat,amt]) => {
+        const pct = totalExp > 0 ? Number((amt/totalExp*100).toFixed(1)) : 0;
+        const sec = Object.entries(sec80).find(([k]) => cat.includes(k.replace(/[^\w]/g,'')))?.[1] || 'Not directly deductible';
+        csv += csvRow([cat, amt, pct, sec]);
+      });
+      csv += '\r\n';
+
+      // ── INVESTMENTS FOR 80C/80D ────────────────────────────
+      csv += 'INVESTMENTS (Section 80C / 80D / 80CCD)\r\n';
+      csv += csvRow(['Investment','Type','Amount Invested (₹)','Section','Max Deduction Limit (₹)','Notes']);
+      const secMap = {
+        'EPF':'80C', 'PPF':'80C', 'NPS':'80CCD(1B)',
+        'Mutual Fund':'80C (ELSS only — verify)',
+        'Fixed Deposit':'80C (5yr Tax-Saver FD only — verify)',
+        'Stocks':'No direct deduction',
+        'Gold':'No direct deduction',
+        'Recurring Deposit':'No direct deduction'
+      };
+      const limMap = {
+        '80C': '150000', '80CCD(1B)': '50000',
+        '80C (ELSS only — verify)': '150000',
+        '80C (5yr Tax-Saver FD only — verify)': '150000'
+      };
+      db.savings.forEach(s => {
+        const sec = secMap[s.type] || 'Check with CA';
+        const lim = limMap[sec] || '—';
+        csv += csvRow([s.name, s.type, s.invested||0, sec, lim, '']);
+      });
+      csv += '\r\n';
+
+      // ── NET POSITION ───────────────────────────────────────
+      csv += 'NET FINANCIAL POSITION (FY ' + fy + ')\r\n';
+      csv += csvRow(['Item','Amount (₹)']);
+      csv += csvRow(['Total Gross Income', totalIncome]);
+      csv += csvRow(['Total Expenses', totalExp]);
+      csv += csvRow(['Net Surplus', totalIncome - totalExp]);
+      csv += csvRow(['Savings Rate %', totalIncome > 0 ? Number(((totalIncome-totalExp)/totalIncome*100).toFixed(1)) : 0]);
+      csv += '\r\n';
+
+      csv += 'IMPORTANT NOTES\r\n';
+      csv += '1. This export covers only transactions recorded in Kite Tracker for FY ' + fy + '.\r\n';
+      csv += '2. Verify all 80C/80D investments with actual certificates/statements.\r\n';
+      csv += '3. Consult a Chartered Accountant (CA) before submitting your ITR.\r\n';
+      csv += '4. HRA exemption requires rent receipts — not tracked here.\r\n';
+
+      downloadFile('kite-tracker-ITR-' + fy.replace('/','_') + '.csv', csv, 'text/csv');
+      showToast('🏛️ ITR summary downloaded');
+    }
+    // ─────────────────────────────────────────────────────────
 
     function importJSONBackup(event) {
       const file = event.target.files[0];
@@ -4482,27 +5153,35 @@ input[type=range].wm-slider::-webkit-slider-thumb {
       reader.onload = e => {
         try {
           const imported = JSON.parse(e.target.result);
-          if (!imported.transactions) return alert("Invalid backup file.");
-          if (!confirm("This will REPLACE all current data with the backup. Continue?")) return;
-          db = imported;
-          // Ensure all fields exist after import
-          if (!db.categories) db.categories = [...defaultCategories];
-          if (!db.categoryLimits) db.categoryLimits = {};
-          if (!db.recurringOverheads) db.recurringOverheads = [];
-          if (!db.creditCards) db.creditCards = [];
-          if (!db.loans) db.loans = [];
-          if (!db.savings) db.savings = [];
-          if (!db.bankAccounts) db.bankAccounts = [];
-          if (db.startingCashBalance === undefined) db.startingCashBalance = 0;
-          saveDb();
-          showToast('✅ Backup restored');
-          location.reload();
+          if (!imported.transactions) {
+            showToast('⚠️ Invalid backup file'); return;
+          }
+          showConfirm({
+            icon: '📥', title: 'Restore Backup?',
+            msg: 'This will REPLACE all your current data with the backup file. Your existing data will be lost.',
+            okLabel: 'Restore', okClass: 'warning',
+            onOk: () => {
+              db = imported;
+              if (!db.categories) db.categories = [...defaultCategories];
+              if (!db.categoryLimits) db.categoryLimits = {};
+              if (!db.recurringOverheads) db.recurringOverheads = [];
+              if (!db.creditCards) db.creditCards = [];
+              if (!db.loans) db.loans = [];
+              if (!db.savings) db.savings = [];
+              if (!db.bankAccounts) db.bankAccounts = [];
+              if (!db.insurances) db.insurances = [];
+              if (db.startingCashBalance === undefined) db.startingCashBalance = 0;
+              saveDb();
+              showToast('✅ Backup restored');
+              setTimeout(() => location.reload(), 800);
+            }
+          });
         } catch(err) {
-          alert("Failed to read backup file. Make sure it is a valid .json file.");
+          showToast('⚠️ Could not read file — must be a valid .json backup');
         }
       };
       reader.readAsText(file);
-      event.target.value = ''; // reset so same file can be re-imported
+      event.target.value = '';
     }
     function updateSipSlider(v) {
       const amt = Number(v);
@@ -4525,6 +5204,50 @@ input[type=range].wm-slider::-webkit-slider-thumb {
     }
 
     function calculateSIP(m, y, r) { if(m <= 0) return 0; const mr = r / 12 / 100, mo = y * 12; return Math.round(m * ((Math.pow(1 + mr, mo) - 1) / mr) * (1 + mr)); }
+
+    // P9: manual SIP input syncs with slider
+    function onSipManualInput(v) {
+      const amt = Number(v);
+      if(!amt || amt <= 0) return;
+      const slider = el('wmSipSlider');
+      if(slider) slider.value = Math.min(Math.max(amt, 500), 50000);
+      updateSipSlider(amt);
+    }
+
+    // P11: Emergency Fund Calculator
+    function calcEmergencyFund() {
+      const members   = Math.max(1, Number((el('wmEmgMembers')  || {}).value) || 1);
+      const expense   = Number((el('wmEmgExpense')  || {}).value) || 0;
+      const months    = Number((el('wmEmgMonths')   || {}).value) || 6;
+      const inflation = Number((el('wmEmgInflation')|| {}).value) || 6;
+      const liquid    = Number(window._wmLiquidCash) || 0;
+
+      if(!expense) {
+        const r = el('wmEmgResult'); if(r) r.innerText = '₹0';
+        const n = el('wmEmgNote');   if(n) n.innerText = 'Enter your monthly expenses below';
+        return;
+      }
+
+      // Base fund = monthly expense × months, scaled for members
+      const memberMult = 1 + (members - 1) * 0.15;
+      const base     = Math.round(expense * months * memberMult);
+      // Inflation-adjusted 1yr buffer
+      const inflated = Math.round(base * (1 + inflation / 100));
+      const gap      = Math.max(0, inflated - Math.max(0, liquid));
+      const coverage = inflated > 0 ? Math.min(Math.max(0, liquid) / inflated * 100, 100) : 0;
+
+      const rEl = el('wmEmgResult');
+      if(rEl) { rEl.innerText = '₹' + fmtN(inflated); rEl.style.color = coverage >= 100 ? '#4ade80' : coverage >= 50 ? '#fbbf24' : '#f87171'; }
+      const nEl = el('wmEmgNote');
+      if(nEl) nEl.innerText = coverage >= 100 ? `✅ Fully covered for ${months} months` : `${coverage.toFixed(0)}% covered — need ₹${fmtN(gap)} more`;
+
+      const baseEl = el('wmEmgBase');     if(baseEl) baseEl.innerText = '₹' + fmtN(base);
+      const inflEl = el('wmEmgInflated'); if(inflEl) { inflEl.innerText = '₹' + fmtN(inflated); inflEl.style.color = 'var(--warning)'; }
+      const haveEl = el('wmEmgHave');     if(haveEl) { haveEl.innerText = '₹' + fmtN(Math.max(0, liquid)); haveEl.style.color = liquid >= inflated ? 'var(--success)' : 'var(--text)'; }
+      const gapEl  = el('wmEmgGap');      if(gapEl)  { gapEl.innerText  = gap > 0 ? '-₹' + fmtN(gap) : '✅ Fully covered'; gapEl.style.color = gap > 0 ? 'var(--danger)' : 'var(--success)'; }
+      const barEl  = el('wmEmgBar');      if(barEl)  { barEl.style.width = coverage.toFixed(0) + '%'; barEl.style.background = coverage >= 100 ? '#4ade80' : coverage >= 50 ? '#fbbf24' : '#f87171'; }
+      const pctEl  = el('wmEmgPct');      if(pctEl)  pctEl.innerText = coverage.toFixed(0) + '%';
+    }
 
     function calculateStats() {
       const cMonth = getCurrentMonthId(), now = new Date(), currentYear = now.getFullYear();
@@ -4651,7 +5374,16 @@ input[type=range].wm-slider::-webkit-slider-thumb {
         el('categoryBudgetsContainer').innerHTML = bH; 
       }
 
-      el('categoryFilterContainer').innerHTML = `<div class="cat-pill ${activeCategoryFilter === 'All Expenses' ? 'active' : ''}" onclick="setFilter('All Expenses')">All</div><div class="cat-pill ${activeCategoryFilter === 'Splits' ? 'active' : ''}" onclick="setFilter('Splits')" style="color:var(--info);">Splits</div><div class="cat-pill ${activeCategoryFilter === 'Income' ? 'active' : ''}" onclick="setFilter('Income')">Income</div><div class="cat-pill ${activeCategoryFilter === 'Repayments' ? 'active' : ''}" onclick="setFilter('Repayments')">Repays</div>` + Array.from(uCat).sort().map(c => `<div class="cat-pill ${activeCategoryFilter === c ? 'active' : ''}" onclick="setFilter('${c}')">${c}</div>`).join('');
+      el('categoryFilterContainer').innerHTML = [
+        {key:'All Expenses', label:'All'},
+        {key:'Splits',       label:'🍴 Splits'},
+        {key:'Income',       label:'💰 Income'},
+        {key:'Repayments',   label:'↩️ Repays'},
+      ].map(f =>
+        `<div class="cat-pill ${activeCategoryFilter === f.key ? 'active' : ''}" data-filter="${f.key}" style="cursor:pointer;">${f.label}</div>`
+      ).join('') + Array.from(uCat).sort().map(c =>
+        `<div class="cat-pill ${activeCategoryFilter === c ? 'active' : ''}" data-filter="${c.replace(/"/g,'&quot;')}" style="cursor:pointer;">${c}</div>`
+      ).join('');
 
       if(!fTx.length) {
         el('recentExpenses').innerHTML = `<div class="empty-state-card"><div class="empty-state-icon">📁</div><div class="empty-state-title">No Activity</div></div>`;
@@ -4827,13 +5559,21 @@ input[type=range].wm-slider::-webkit-slider-thumb {
       el('toggle-' + currentChartView).classList.add('active');
       
       const dL = db.target > 0 ? Math.floor(db.target / daysInMonth) : 0;
+
+      // Write to home tab stats
       el('spendToday').innerText = `₹${fmtN(tSp)}`; 
       el('spendToday').style.color = (db.target > 0 && tSp > dL) ? "var(--danger)" : "var(--text)";
-      
       el('spendWeek').innerText = `₹${fmtN(wSp)}`; 
-      el('spendMonthWidget').innerText = `₹${fmtN(mSp)}`; 
-      el('incomeMonthWidget').innerText = `₹${fmtN(mInc)}`; 
       el('safeDailyLimit').innerText = `₹${fmtN(dL)}`;
+
+      // Write to summary tab stats (unique IDs — P10 fix)
+      const smT = el('smSpendToday'), smW = el('smSpendWeek'), smL = el('smSafeDailyLimit');
+      if(smT){ smT.innerText = `₹${fmtN(tSp)}`; smT.style.color = (db.target > 0 && tSp > dL) ? "var(--danger)" : "var(--text)"; }
+      if(smW) smW.innerText = `₹${fmtN(wSp)}`;
+      if(smL) smL.innerText = `₹${fmtN(dL)}`;
+
+      el('spendMonthWidget').innerText = `₹${fmtN(mSp)}`; 
+      el('incomeMonthWidget').innerText = `₹${fmtN(mInc)}`;
       
       el('targetDisplay').innerText = db.target > 0 ? `₹${fmtN(Math.abs(rem))}` : '—'; 
       el('targetDisplay').style.color = rem < 0 ? "#f87171" : "#ffffff"; 
@@ -5204,8 +5944,8 @@ input[type=range].wm-slider::-webkit-slider-thumb {
     function saveInsurance() {
       const name = val('insName').trim();
       const cov = num('insCoverage'), prem = num('insPremium');
-      if(!name) return alert("Policy name is required.");
-      if(!cov) return alert("Coverage amount is required.");
+      if(!name) { showToast('⚠️ Policy name is required'); return; }
+      if(!cov)  { showToast('⚠️ Coverage amount is required'); return; }
       const obj = {
         type: selectedInsType, icon: selectedInsIcon, name, coverage: cov, premium: prem,
         startDate: el('insStartDate').value, renewalDate: el('insRenewalDate').value,
@@ -5226,22 +5966,80 @@ input[type=range].wm-slider::-webkit-slider-thumb {
 
     function renewInsurance() {
       const p = db.insurances.find(x => x.id === editingInsuranceId); if(!p) return;
-      if(!confirm(`Mark "${p.name}" as renewed? This will advance the renewal date by 1 year.`)) return;
-      if(p.renewalDate) {
-        const d = new Date(p.renewalDate); d.setFullYear(d.getFullYear() + 1);
-        p.renewalDate = d.toISOString().split('T')[0];
-      }
-      const i = db.insurances.findIndex(x => x.id === editingInsuranceId);
-      db.insurances[i] = p;
-      saveDb(); closeModal(null, 'addInsuranceModal', true);
-      showToast('✅ Policy renewed'); renderInsuranceTab();
+      showConfirm({
+        icon: '🔄', title: 'Mark as Renewed?',
+        msg: `"${p.name}" renewal date will advance by 1 year.`,
+        okLabel: 'Renew', okClass: 'primary',
+        onOk: () => {
+          if(p.renewalDate) {
+            const d = new Date(p.renewalDate); d.setFullYear(d.getFullYear() + 1);
+            p.renewalDate = d.toISOString().split('T')[0];
+          }
+          const i = db.insurances.findIndex(x => x.id === editingInsuranceId);
+          db.insurances[i] = p;
+          saveDb(); closeModal(null, 'addInsuranceModal', true);
+          showToast('✅ Policy renewed'); renderInsuranceTab();
+        }
+      });
     }
 
     function deleteInsurance() {
-      if(!confirm("Delete this insurance policy?")) return;
-      db.insurances = db.insurances.filter(x => x.id !== editingInsuranceId);
-      saveDb(); closeModal(null, 'addInsuranceModal', true);
-      showToast('🗑️ Policy deleted'); renderInsuranceTab();
+      showConfirm({
+        icon: '🛡️', title: 'Delete Policy?',
+        msg: 'This insurance policy will be permanently removed.',
+        okLabel: 'Delete', okClass: '',
+        onOk: () => {
+          db.insurances = db.insurances.filter(x => x.id !== editingInsuranceId);
+          saveDb(); closeModal(null, 'addInsuranceModal', true);
+          showToast('🗑️ Policy deleted'); renderInsuranceTab();
+        }
+      });
+    }
+    // ─────────────────────────────────────────────────────────
+
+    // ── P6: Nav hide on scroll down, show on scroll up ────────
+    (function() {
+      let lastScrollY = 0, ticking = false;
+      const nav = document.querySelector('.nav-island');
+      function handleScroll() {
+        const activeTab = document.querySelector('.tab-content.active');
+        if(!activeTab || !nav) return;
+        const sy = activeTab.scrollTop || window.scrollY;
+        const delta = sy - lastScrollY;
+        if(delta > 10) {
+          nav.classList.add('hidden');
+        } else if(delta < -8) {
+          nav.classList.remove('hidden');
+        }
+        lastScrollY = sy;
+        ticking = false;
+      }
+      // Listen on all tab containers
+      document.querySelectorAll('.tab-content, .modal-content').forEach(el => {
+        el.addEventListener('scroll', () => { if(!ticking) { requestAnimationFrame(handleScroll); ticking = true; } }, {passive:true});
+      });
+      window.addEventListener('scroll', () => { if(!ticking) { requestAnimationFrame(handleScroll); ticking = true; } }, {passive:true});
+    })();
+    // ─────────────────────────────────────────────────────────
+
+    // ── P9: Wealth modal white bar fix ────────────────────────
+    const wmModal = el('wealthModal');
+    if(wmModal) {
+      const wmc = wmModal.querySelector('.modal-content');
+      if(wmc) { wmc.style.background = 'var(--bg)'; wmc.style.overflow = 'hidden auto'; }
+    }
+    // ─────────────────────────────────────────────────────────
+
+    // ── Wire restoreBackupRow → importFile (must be direct user gesture) ──
+    const restoreRow = document.getElementById('restoreBackupRow');
+    if(restoreRow) {
+      restoreRow.addEventListener('click', function() {
+        document.getElementById('importFile').click();
+      });
+      restoreRow.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        document.getElementById('importFile').click();
+      }, { passive: false });
     }
     // ─────────────────────────────────────────────────────────
 
