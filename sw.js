@@ -1,18 +1,21 @@
-// Kite Tracker — Service Worker
-// Strategy: Cache-first for app shell, network-first for external resources
-// Version bump this string to force cache refresh on deploy
-const CACHE_NAME = 'kite-tracker-v4';
-const SHELL = [
-  './',
-  './index.html',
-  './manifest.json'
+// Kite Finance — Service Worker v7
+// Strategy: NETWORK-FIRST for index.html (always get fresh when online)
+//           Cache-first for static assets (manifest, icons)
+
+const CACHE_NAME = 'kite-finance-v7';
+const STATIC_ASSETS = [
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
-// ── Install: cache app shell ──────────────────────────────
+// ── Install: cache only static assets, not HTML ───────────
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(SHELL))
+      .then(cache => Promise.allSettled(
+        STATIC_ASSETS.map(url => cache.add(url).catch(() => null))
+      ))
       .then(() => self.skipWaiting())
   );
 });
@@ -22,53 +25,56 @@ self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
-        keys
-          .filter(k => k !== CACHE_NAME)
-          .map(k  => caches.delete(k))
+        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
       )
     ).then(() => self.clients.claim())
   );
 });
 
-// ── Fetch: cache-first for shell, network-first for rest ──
+// ── Fetch: NETWORK-FIRST for HTML, cache-first for assets ─
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Skip non-GET and cross-origin Firebase/CDN requests (let them go to network)
   if(e.request.method !== 'GET') return;
-  if(url.hostname.includes('firebase') ||
-     url.hostname.includes('gstatic')  ||
-     url.hostname.includes('google'))  return;
+  if(url.origin !== self.location.origin) return;
 
-  // App shell — cache first, fallback to network
-  if(SHELL.some(s => e.request.url.endsWith(s.replace('./', ''))) ||
-     url.pathname === '/' ||
-     url.pathname.endsWith('index.html')) {
+  // HTML / navigation — always try network first so users get latest updates
+  const isHTML =
+    e.request.mode === 'navigate' ||
+    url.pathname === '/' ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.endsWith('/');
+
+  if(isHTML) {
     e.respondWith(
-      caches.match(e.request).then(cached => {
-        if(cached) return cached;
-        return fetch(e.request).then(res => {
+      fetch(e.request)
+        .then(res => {
           if(res && res.status === 200) {
             const clone = res.clone();
             caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
           }
           return res;
-        });
-      })
+        })
+        .catch(() => caches.match(e.request).then(r => r || caches.match('./')))
     );
     return;
   }
 
-  // Everything else — network first, fallback to cache
+  // Static assets — cache-first, refresh in background
   e.respondWith(
-    fetch(e.request)
-      .then(res => {
+    caches.match(e.request).then(cached => {
+      const fetchPromise = fetch(e.request).then(res => {
         if(res && res.status === 200) {
           const clone = res.clone();
           caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
         }
         return res;
-      })
-      .catch(() => caches.match(e.request))
+      }).catch(() => cached);
+      return cached || fetchPromise;
+    })
   );
+});
+
+self.addEventListener('message', e => {
+  if(e.data === 'SKIP_WAITING') self.skipWaiting();
 });
